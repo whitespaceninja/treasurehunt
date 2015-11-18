@@ -13,21 +13,11 @@ Use w, a, s, d to move your character towards the $ sign
 | 's'       | DOWN      |
 | 'a'       | LEFT      |
 | 'c'       | Quit      |
-
-
-Try to get your character to the $ sign before coderpad kills the program!
-
 */
-// Create a new Express application
-//var app = express();
-
-// Create an http server with Node's HTTP module. 
-// Pass it the Express application, and listen on port 8080. 
-//var server = require('http').createServer(app).listen(8080);
 
 "use strict";
 
-function run(io, socket) {  
+function run() {  
   // set up basic game objects
   var mapInfo = new MapInfo(40, 20);
   var character = new Character(20, 10, '!');
@@ -278,31 +268,4 @@ class Character {
   }
 }
 
-//run();
-
-/**
-Trying to figure out a way to run this in the browser!
-*/
-
-// Import the Express module
-/*var express = require('express');
-
-// Import the 'path' module (packaged with Node.js)
-var path = require('path');
-
-// Create a new instance of Express
-var app = express();
-
-// Create a simple Express application
-app.configure(function() {
-    // Turn down the logging activity
-    app.use(express.logger('dev'));
-
-    // Serve static html, js, css, and image files from the 'public' directory
-    app.use(express.static(path.join(__dirname,'public')));
-});
-
-// Create a Node.js based http server on port 8080
-var server = require('http').createServer(app).listen(process.env.PORT || 8080);
-*/
-run(null, null);
+run();
