@@ -77,7 +77,7 @@ function run() {
     var key = process.stdin.read();
     
     if (key) {
-      if (key.toString() == 'c') {
+	  if (key.toString() == 'c') {
         process.exit();
       } else {
         // update character movement
@@ -256,10 +256,20 @@ class Character {
   
   move(direction, maxX, maxY) {
     switch(direction) {
-      case 'a': this.x--; break;
-      case 'd': this.x++; break;
-      case 'w': this.y--; break;
-      case 's': this.y++; break;
+      case 'a': 
+        this.x--; break;
+      
+      case 'e': 
+      case 'd': 
+        this.x++; break;
+      
+      case ',': 
+      case 'w': 
+        this.y--; break;
+      
+      case 'o':
+      case 's':
+        this.y++; break;
     }
     
     // restrict to bounds provided
