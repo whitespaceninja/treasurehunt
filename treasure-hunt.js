@@ -18,8 +18,87 @@ Use w, a, s, d to move your character towards the $ sign
 "use strict";
 
 function run() {  
+<<<<<<< HEAD
 	var thGame = new TreasureHuntGame();
 	thGame.initialize();
+=======
+  // set up basic game objects
+  var mapInfo = new MapInfo(40, 20);
+  var character = new Character(20, 10, '!');
+  
+  // put the goal in a random spot on the map 
+  // (there's a small chance it will be on the player but I don't care right now)
+  var goalX = randomNumber(mapInfo.width - 1);
+  var goalY = randomNumber(mapInfo.height - 1);
+  
+  var goal = new Character(goalX, goalY, '$');
+  var renderer = new Renderer();
+  var winAnimations = [];
+  
+  // add game objects to renderer
+  renderer.addCharacter(character);
+  renderer.addCharacter(goal);
+  
+  // first draw of render
+  renderer.render(mapInfo);
+  
+  // this is a blocking animation that 'explodes' the 
+  //...goal into an explosion
+  var doWinAnimation = function() {
+    var counter = 0;
+    var numCyclesBeforeNewSpawn = 7;
+    var EXPLOSION_SPEED = 100; // num milliseconds between frames of WIN explosion
+    
+    winAnimations.push(new WinAnimation(goal.x, goal.y));
+    while (true) {
+      // clear everything
+      renderer.removeAllCharacters();
+      
+      for (var i = 0; i < winAnimations.length; i++) {
+        if (i == 0 && counter % 10 > 3) {
+          winAnimations[i].addWinText(renderer);
+        }
+        winAnimations[i].animate(renderer);  
+      }
+      
+      renderer.render(mapInfo);
+      
+      // spawn a new animation every X cycles
+      if (++counter % numCyclesBeforeNewSpawn == 0) {
+        winAnimations.push(new WinAnimation(goal.x, goal.y));
+      }
+      
+      sleepFor(EXPLOSION_SPEED);
+    }
+  };
+  
+  
+  // this allows us to read keys directly from input without ENTER
+  process.stdin.setRawMode(true);
+
+  // this is essentially our main game loop
+  process.stdin.on('readable', function(data) {
+    var key = process.stdin.read();
+    
+    if (key) {
+	  if (key.toString() == 'c') {
+        process.exit();
+      } else {
+        // update character movement
+        character.move(key.toString(), mapInfo.width, mapInfo.height);
+        
+        if (character.x == goal.x && 
+            character.y == goal.y) {
+          // win condition!
+          doWinAnimation();
+        } else {
+          // redraw
+          renderer.render(mapInfo);
+        }
+      }
+    }
+  });
+>>>>>>> 8132367eb737002f2a51433488a31c537c5daed5
 }
 
 function randomNumber(max) {
@@ -316,13 +395,23 @@ class Character {
 	}
   
 	move(direction, maxX, maxY) {
-    	switch(direction) {
-		    case 'a': this.x--; break;
-		    case 'd': this.x++; break;
-		    case 'w': this.y--; break;
-		    case 's': this.y++; break;
-	   	}
-    
+		switch(direction) {
+		  case 'a': 
+		    this.x--; break;
+		  
+		  case 'e': 
+		  case 'd': 
+		    this.x++; break;
+		  
+		  case ',': 
+		  case 'w': 
+		    this.y--; break;
+		  
+		  case 'o':
+		  case 's':
+		    this.y++; break;
+		}
+
 	    // restrict to bounds provided
 	    this.x = Math.min(maxX - 1, Math.max(0, this.x));
 	    this.y = Math.min(maxY - 1, Math.max(0, this.y));
