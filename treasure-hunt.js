@@ -20,34 +20,6 @@ Use w, a, s, d to move your character towards the $ sign
 function run() {  
 	var thGame = new TreasureHuntGame();
 	thGame.initialize();
-
-	/*
-
-	// this allows us to read keys directly from input without ENTER
-	process.stdin.setRawMode(true);
-
-	// this is essentially our main game loop
-	process.stdin.on('readable', function(data) {
-		var key = process.stdin.read();
-
-		if (key) {
-			if (key.toString() == 'c') {
-				process.exit();
-			} else {
-				// update character movement
-				character.move(key.toString(), mapInfo.width, mapInfo.height);
-
-				if (character.x == goal.x && 
-				    character.y == goal.y) {
-					// win condition!
-					doWinAnimation();
-				} else {
-					// redraw
-					renderer.render(mapInfo);
-				}
-			}
-		}
-	});*/
 }
 
 function randomNumber(max) {
@@ -98,8 +70,6 @@ class WinAnimation {
 	}
 }
 
-
-
 class Game {
 	constructor() {
 		this.lastkeyPresses = [];
@@ -119,7 +89,7 @@ class Game {
 		this.threadDraw = new Thread(drawFunction);
 
 		this.threadUpdate.start(10);
-		this.threadDraw.start(5);
+		this.threadDraw.start(10);
 
 		var that = this;
 
@@ -139,50 +109,46 @@ class Game {
 		if (this.lastkeyPresses.length <= 0) {
 			return null;
 		}
-
-		var key = this.lastkeyPresses.shift();
-		return key;
+		return this.lastkeyPresses.shift();
 	}
 }
 
 class TreasureHuntGame {
-	constructor(something) {
-		console.log("thGame constructor");
+	constructor() {
 		this.game = null;
 		this.isWinning = false;
-	}
-
-	initialize() {
-
-		var that = this;
-		this.game = new Game();
 
 		// set up basic game objects
-		var mapInfo = new MapInfo(40, 20);
-		var character = new Character(20, 10, '!');
+		this.game = new Game();
+		this.mapInfo = new MapInfo(40, 20);
+		this.character = new Character(20, 10, '!');
 
 		// put the goal in a random spot on the map 
 		// (there's a small chance it will be on the player but I don't care right now)
-		var goalX = randomNumber(mapInfo.width - 1);
-		var goalY = randomNumber(mapInfo.height - 1);
+		var goalX = randomNumber(this.mapInfo.width - 1);
+		var goalY = randomNumber(this.mapInfo.height - 1);
 
-		var goal = new Character(goalX, goalY, '$');
-		var renderer = new Renderer();
-		var winAnimations = [];
+		this.goal = new Character(goalX, goalY, '$');
+		this.renderer = new Renderer();
+		this.winAnimations = [];
+	}
 
+	addAnimation() {
+		this.winAnimations.push(new WinAnimation(this.goal.x, this.goal.y));
+	};
+
+	initialize() {
+		var that = this;
+		
 		var counter = 0;
 		var lastTime = Date.now();
 
 		// add game objects to renderer
-		renderer.addCharacter(character);
-		renderer.addCharacter(goal);
+		this.renderer.addCharacter(this.character);
+		this.renderer.addCharacter(this.goal);
 
 		// first draw of render
-		renderer.render(mapInfo);
-
-		var addAnimation = function() {
-			winAnimations.push(new WinAnimation(goal.x, goal.y));
-		};
+		this.renderer.render(this.mapInfo);
 
 		// this is a blocking animation that 'explodes' the 
 		//...goal into an explosion
@@ -192,24 +158,21 @@ class TreasureHuntGame {
 			var EXPLOSION_SPEED = 100; // num milliseconds between frames of WIN explosion
 		
 			// clear everything
-			renderer.removeAllCharacters();
+			that.renderer.removeAllCharacters();
 		  
-			for (var i = 0; i < winAnimations.length; i++) {
+			for (var i = 0; i < that.winAnimations.length; i++) {
 		  		if (i == 0 && counter % 10 > 3) {
-		    		winAnimations[i].addWinText(renderer);
+		    		that.winAnimations[i].addWinText(that.renderer);
 		    	}
-			    winAnimations[i].animate(renderer);  
+			    that.winAnimations[i].animate(that.renderer);  
 		  	}
 		  
+		  	// spawn a new animation based on EXPLOSION_SPEED
 		  	var now = Date.now();
 		  	if (now - lastTime > EXPLOSION_SPEED) {
-		  		addAnimation();
+		  		that.addAnimation();
 		  	}
 		  	lastTime = now;
-		  	// spawn a new animation every X cycles
-		  	/*if (++counter % numCyclesBeforeNewSpawn == 0) {
-		    	winAnimations.push(new WinAnimation(goal.x, goal.y));
-		  	}*/
 		};
 
 
@@ -221,9 +184,9 @@ class TreasureHuntGame {
 					process.exit();
 				} else {
 					// update character movement
-					character.move(key.toString(), mapInfo.width, mapInfo.height);
+					that.character.move(key.toString(), that.mapInfo.width, that.mapInfo.height);
 
-					if (character.x == goal.x && character.y == goal.y) {
+					if (that.character.x == that.goal.x && that.character.y == that.goal.y) {
 						that.isWinning = true;
 					} 
 				}
@@ -236,8 +199,7 @@ class TreasureHuntGame {
 		}
 
 		var draw = function() {
-			renderer.render(mapInfo);
-			
+			that.renderer.render(that.mapInfo);
 		}
 
 		this.game.initialize(update, draw);
@@ -378,9 +340,8 @@ class Thread {
 
 	start(desiredFramerate) {
 		this.minimumMillsecPerFrame = 1000/ desiredFramerate;
-
 		var that = this;
-		
+	
 		var internalRun = function() {
 			that.functionPointer();
 			setTimeout(internalRun, that.minimumMillsecPerFrame);	
