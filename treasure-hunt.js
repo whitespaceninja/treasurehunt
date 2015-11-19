@@ -115,9 +115,6 @@ class Game {
 
 class TreasureHuntGame {
 	constructor() {
-		this.game = null;
-		this.isWinning = false;
-
 		// set up basic game objects
 		this.game = new Game();
 		this.mapInfo = new MapInfo(40, 20);
@@ -131,6 +128,9 @@ class TreasureHuntGame {
 		this.goal = new Character(goalX, goalY, '$');
 		this.renderer = new Renderer();
 		this.winAnimations = [];
+
+		// this should probably turn into a state machine
+		this.isWinning = false;
 	}
 
 	addAnimation() {
@@ -139,9 +139,11 @@ class TreasureHuntGame {
 
 	initialize() {
 		var that = this;
+
+		var EXPLOSION_SPEED = 2000; // num milliseconds between frames of WIN explosion		
 		
-		var counter = 0;
-		var lastTime = Date.now();
+		var lastExplosionTime = Date.now();
+		var lastBlinkTime = Date.now();
 
 		// add game objects to renderer
 		this.renderer.addCharacter(this.character);
@@ -153,26 +155,23 @@ class TreasureHuntGame {
 		// this is a blocking animation that 'explodes' the 
 		//...goal into an explosion
 		var doWinAnimation = function() {
-			//var counter = 0;
-			var numCyclesBeforeNewSpawn = 7;
-			var EXPLOSION_SPEED = 100; // num milliseconds between frames of WIN explosion
-		
+			var now = Date.now();
+
 			// clear everything
 			that.renderer.removeAllCharacters();
 		  
 			for (var i = 0; i < that.winAnimations.length; i++) {
-		  		if (i == 0 && counter % 10 > 3) {
-		    		that.winAnimations[i].addWinText(that.renderer);
-		    	}
+				if (now - lastBlinkTime % 10 > 3) {
+					that.winAnimations[i].addWinText(that.renderer);
+		  		}
 			    that.winAnimations[i].animate(that.renderer);  
 		  	}
 		  
 		  	// spawn a new animation based on EXPLOSION_SPEED
-		  	var now = Date.now();
-		  	if (now - lastTime > EXPLOSION_SPEED) {
+		  	if (now - lastExplosionTime > EXPLOSION_SPEED) {
 		  		that.addAnimation();
+		  		lastExplosionTime = now;
 		  	}
-		  	lastTime = now;
 		};
 
 
@@ -182,7 +181,7 @@ class TreasureHuntGame {
 			if (null !== key) {
 				if (key.toString() == 'c') {
 					process.exit();
-				} else {
+				} else if (!that.isWinning) {	
 					// update character movement
 					that.character.move(key.toString(), that.mapInfo.width, that.mapInfo.height);
 
