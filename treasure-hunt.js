@@ -171,7 +171,7 @@ class TreasureHuntGame {
 		var winAnimations = [];
 
 		var counter = 0;
-	
+		var lastTime = Date.now();
 
 		// add game objects to renderer
 		renderer.addCharacter(character);
@@ -180,17 +180,16 @@ class TreasureHuntGame {
 		// first draw of render
 		renderer.render(mapInfo);
 
+		var addAnimation = function() {
+			winAnimations.push(new WinAnimation(goal.x, goal.y));
+		};
+
 		// this is a blocking animation that 'explodes' the 
 		//...goal into an explosion
 		var doWinAnimation = function() {
 			//var counter = 0;
 			var numCyclesBeforeNewSpawn = 7;
 			var EXPLOSION_SPEED = 100; // num milliseconds between frames of WIN explosion
-
-			var addAnimation = function() {
-				winAnimations.push(new WinAnimation(goal.x, goal.y));
-				setTimeout(addAnimation, 2000);
-			};
 		
 			// clear everything
 			renderer.removeAllCharacters();
@@ -202,12 +201,15 @@ class TreasureHuntGame {
 			    winAnimations[i].animate(renderer);  
 		  	}
 		  
+		  	var now = Date.now();
+		  	if (now - lastTime > EXPLOSION_SPEED) {
+		  		addAnimation();
+		  	}
+		  	lastTime = now;
 		  	// spawn a new animation every X cycles
 		  	/*if (++counter % numCyclesBeforeNewSpawn == 0) {
 		    	winAnimations.push(new WinAnimation(goal.x, goal.y));
 		  	}*/
-
-		  	setTimeout(addAnimation, 0);
 		};
 
 
