@@ -145,6 +145,42 @@ class WinAnimation {
 	}
 }
 
+class Game {
+	constructor() {
+		this.lastkeyPresses = [];
+	}
+
+	initialize() {
+		// this allows us to read keys directly from input without ENTER
+		process.stdin.setRawMode(true);
+
+		process.stdin.on('readable', function(data) {
+			var key = process.stdin.read();
+			if (key) {
+				this.lastkeyPresses.push(key);
+			}
+		});
+	}
+
+	update() {
+		// override to do something useful
+	}
+
+	draw() {
+		// override to do something useful
+	}
+
+	run() {
+		update();
+	}
+
+	// this method can only be called once
+	getLastKeypress() {
+		var key = this.lastkeyPresses.shift();
+		return key;
+	}
+}
+
 class MapInfo {
 	constructor(width, height) {
 		this.width = width;
@@ -269,17 +305,27 @@ class Character {
 	}
 }
 
-const util = require('util');
-const EventEmitter = require('events');
+class Thread {
+	constructor() {
+		this.minimumMillsecPerFrame = 0;
+	}
 
-function GameEventEmitter() {
-	// Initialize necessary properties from `EventEmitter` in this instance
-	EventEmitter.call(this);
+	run() {
+		// do nothing
+	}
+
+	start(desiredFramerate) {
+		//f/s * 1s/1000millis 
+		this.minimumMillsecPerFrame = desiredFramerate / 1000;
+
+		setTimeout(run, this.minimumMillsecPerFrame);
+	}
+
+	runInternal() {
+		run();
+		setTimeout(runInternal, this.minimumMillsecPerFrame);	
+	}
 }
-
-// Inherit functions from `EventEmitter`'s prototype
-util.inherits(MyEventEmitter, EventEmitter);
-
 
 run();
 
