@@ -203,8 +203,6 @@ class TreasureHuntGame {
 
 		this.game.initialize(update, draw);
 	}
-
-	
 }
 
 class MapInfo {
@@ -333,17 +331,16 @@ class Character {
 
 class Thread {
 	constructor(functionPointer) {
-		this.minimumMillsecPerFrame = 0;
 		this.functionPointer = functionPointer;
 	}
 
 	start(desiredFramerate) {
-		this.minimumMillsecPerFrame = 1000/ desiredFramerate;
 		var that = this;
+		var minimumMillsecPerFrame = 1000/ desiredFramerate;
 	
 		var internalRun = function() {
 			that.functionPointer();
-			setTimeout(internalRun, that.minimumMillsecPerFrame);	
+			setTimeout(internalRun, minimumMillsecPerFrame);	
 		};
 
 		// initial call
