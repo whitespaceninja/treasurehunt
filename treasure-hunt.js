@@ -18,57 +18,10 @@ Use w, a, s, d to move your character towards the $ sign
 "use strict";
 
 function run() {  
+	var thGame = new TreasureHuntGame();
+	thGame.initialize();
 
-	// set up basic game objects
-	var mapInfo = new MapInfo(40, 20);
-	var character = new Character(20, 10, '!');
-
-	// put the goal in a random spot on the map 
-	// (there's a small chance it will be on the player but I don't care right now)
-	var goalX = randomNumber(mapInfo.width - 1);
-	var goalY = randomNumber(mapInfo.height - 1);
-
-	var goal = new Character(goalX, goalY, '$');
-	var renderer = new Renderer();
-	var winAnimations = [];
-
-	// add game objects to renderer
-	renderer.addCharacter(character);
-	renderer.addCharacter(goal);
-
-	// first draw of render
-	renderer.render(mapInfo);
-
-	// this is a blocking animation that 'explodes' the 
-	//...goal into an explosion
-	var doWinAnimation = function() {
-		var counter = 0;
-		var numCyclesBeforeNewSpawn = 7;
-		var EXPLOSION_SPEED = 100; // num milliseconds between frames of WIN explosion
-
-		winAnimations.push(new WinAnimation(goal.x, goal.y));
-		while (true) {
-			// clear everything
-			renderer.removeAllCharacters();
-		  
-			for (var i = 0; i < winAnimations.length; i++) {
-		  		if (i == 0 && counter % 10 > 3) {
-		    		winAnimations[i].addWinText(renderer);
-		    	}
-			    winAnimations[i].animate(renderer);  
-		  	}
-		  
-		  	renderer.render(mapInfo);
-		  
-		  	// spawn a new animation every X cycles
-		  	if (++counter % numCyclesBeforeNewSpawn == 0) {
-		    	winAnimations.push(new WinAnimation(goal.x, goal.y));
-		  	}
-		  
-		  	sleepFor(EXPLOSION_SPEED);
-		}
-	};
-
+	/*
 
 	// this allows us to read keys directly from input without ENTER
 	process.stdin.setRawMode(true);
@@ -94,7 +47,7 @@ function run() {
 				}
 			}
 		}
-	});
+	});*/
 }
 
 function randomNumber(max) {
@@ -145,40 +98,150 @@ class WinAnimation {
 	}
 }
 
+
+
 class Game {
 	constructor() {
 		this.lastkeyPresses = [];
+		this.threadUpdate = null;
+		this.threadDraw = null;
+		console.log("game constructor");
 	}
 
-	initialize() {
-		// this allows us to read keys directly from input without ENTER
-		process.stdin.setRawMode(true);
+	initialize(updateFunction, drawFunction) {
+		console.log("initialize game");
+		var runnable = new Object();
+		runnable.run = this.updateFunction;
+
+		var runnable2 = new Object();
+		runnable2.run = this.drawFunction;
+		this.threadUpdate = new Thread(updateFunction);
+		this.threadDraw = new Thread(drawFunction);
+
+		this.threadUpdate.start(10);
+		this.threadDraw.start(5);
+
+		var that = this;
 
 		process.stdin.on('readable', function(data) {
 			var key = process.stdin.read();
 			if (key) {
-				this.lastkeyPresses.push(key);
+				that.lastkeyPresses.push(key);
 			}
 		});
-	}
-
-	update() {
-		// override to do something useful
-	}
-
-	draw() {
-		// override to do something useful
-	}
-
-	run() {
-		update();
+	
+		// this allows us to read keys directly from input without ENTER
+		process.stdin.setRawMode(true);
 	}
 
 	// this method can only be called once
 	getLastKeypress() {
+		if (this.lastkeyPresses.length <= 0) {
+			return null;
+		}
+
 		var key = this.lastkeyPresses.shift();
 		return key;
 	}
+}
+
+class TreasureHuntGame {
+	constructor(something) {
+		console.log("thGame constructor");
+		this.game = null;
+		this.isWinning = false;
+	}
+
+	initialize() {
+
+		var that = this;
+		this.game = new Game();
+
+		// set up basic game objects
+		var mapInfo = new MapInfo(40, 20);
+		var character = new Character(20, 10, '!');
+
+		// put the goal in a random spot on the map 
+		// (there's a small chance it will be on the player but I don't care right now)
+		var goalX = randomNumber(mapInfo.width - 1);
+		var goalY = randomNumber(mapInfo.height - 1);
+
+		var goal = new Character(goalX, goalY, '$');
+		var renderer = new Renderer();
+		var winAnimations = [];
+
+		var counter = 0;
+	
+
+		// add game objects to renderer
+		renderer.addCharacter(character);
+		renderer.addCharacter(goal);
+
+		// first draw of render
+		renderer.render(mapInfo);
+
+		// this is a blocking animation that 'explodes' the 
+		//...goal into an explosion
+		var doWinAnimation = function() {
+			//var counter = 0;
+			var numCyclesBeforeNewSpawn = 7;
+			var EXPLOSION_SPEED = 100; // num milliseconds between frames of WIN explosion
+
+			var addAnimation = function() {
+				winAnimations.push(new WinAnimation(goal.x, goal.y));
+				setTimeout(addAnimation, 2000);
+			};
+		
+			// clear everything
+			renderer.removeAllCharacters();
+		  
+			for (var i = 0; i < winAnimations.length; i++) {
+		  		if (i == 0 && counter % 10 > 3) {
+		    		winAnimations[i].addWinText(renderer);
+		    	}
+			    winAnimations[i].animate(renderer);  
+		  	}
+		  
+		  	// spawn a new animation every X cycles
+		  	/*if (++counter % numCyclesBeforeNewSpawn == 0) {
+		    	winAnimations.push(new WinAnimation(goal.x, goal.y));
+		  	}*/
+
+		  	setTimeout(addAnimation, 0);
+		};
+
+
+		var update = function () {
+			var key = that.game.getLastKeypress();
+
+			if (null !== key) {
+				if (key.toString() == 'c') {
+					process.exit();
+				} else {
+					// update character movement
+					character.move(key.toString(), mapInfo.width, mapInfo.height);
+
+					if (character.x == goal.x && character.y == goal.y) {
+						that.isWinning = true;
+					} 
+				}
+			}
+
+			if (that.isWinning) {
+				// win condition!
+				doWinAnimation();	
+			}
+		}
+
+		var draw = function() {
+			renderer.render(mapInfo);
+			
+		}
+
+		this.game.initialize(update, draw);
+	}
+
+	
 }
 
 class MapInfo {
@@ -306,24 +369,23 @@ class Character {
 }
 
 class Thread {
-	constructor() {
+	constructor(functionPointer) {
 		this.minimumMillsecPerFrame = 0;
-	}
-
-	run() {
-		// do nothing
+		this.functionPointer = functionPointer;
 	}
 
 	start(desiredFramerate) {
-		//f/s * 1s/1000millis 
-		this.minimumMillsecPerFrame = desiredFramerate / 1000;
+		this.minimumMillsecPerFrame = 1000/ desiredFramerate;
 
-		setTimeout(run, this.minimumMillsecPerFrame);
-	}
+		var that = this;
+		
+		var internalRun = function() {
+			that.functionPointer();
+			setTimeout(internalRun, that.minimumMillsecPerFrame);	
+		};
 
-	runInternal() {
-		run();
-		setTimeout(runInternal, this.minimumMillsecPerFrame);	
+		// initial call
+		setTimeout(internalRun, 0);	
 	}
 }
 
