@@ -232,8 +232,8 @@ class TreasureHuntGame {
 		}
 
 		var draw = function() {
-			that.renderer.clearScreen();
-			that.drawHelp();
+			//that.renderer.clearScreen();
+			//that.drawHelp();
 
 			that.renderer.render(that.mapInfo);
 		}
@@ -262,6 +262,36 @@ class MapInfo {
 class Renderer {
 	constructor() {
     	this.characters = [];
+    	this.readline = require('readline');
+		this.rl = this.readline.createInterface({
+		  input: process.stdin,
+		  output: process.stdout
+		});
+	}
+
+	render(mapInfo) {
+		for (var i = 0; i < this.characters.length; i++) {
+			var thisChar = this.characters[i];
+			this.readline.cursorTo(this.rl, thisChar.x, thisChar.y);
+			process.stdout.write(thisChar.symbol);
+		}
+
+		/*for (var row = 0; row < mapInfo.height; row++) {
+			// find all characters that need to be drawn in this row
+			var charactersInRow = this.getCharactersInRow(row);;
+		  
+			// if there aren't any, draw a blank line
+			if (charactersInRow.length <= 0) {
+		    	console.log(' ');
+			} else {
+			    // else there must be characters here, sort them first...
+			    charactersInRow.sort(this.compareX);
+			    
+			    // ...then draw them all. Put it all in one string for quick render.
+			    var output = this.getOutputLine(charactersInRow, mapInfo);
+			    console.log(output);
+			}
+		}*/
 	}
 
 	clearScreen() {
@@ -324,25 +354,48 @@ class Renderer {
 		return output;
 	}
 
-	render(mapInfo) {
+	cursorTo(x, y) {
+		//Position the Cursor:
+		//\033[<L>;<C>H
+		// Or
+		//\033[<L>;<C>f
+		//puts the cursor at line L and column C.
+		var output = '033[' + y + ';' + x + 'H\r';
+		process.stdout.write(output);
+	}
 
-		for (var row = 0; row < mapInfo.height; row++) {
-			// find all characters that need to be drawn in this row
-			var charactersInRow = this.getCharactersInRow(row);;
-		  
-			// if there aren't any, draw a blank line
-			if (charactersInRow.length <= 0) {
-		    	console.log(' ');
-			} else {
-			    // else there must be characters here, sort them first...
-			    charactersInRow.sort(this.compareX);
-			    
-			    // ...then draw them all. Put it all in one string for quick render.
-			    var output = this.getOutputLine(charactersInRow, mapInfo);
-			    console.log(output);
+	cursorUp(i) {
+		if (i > 0) {
+			while(i--) {
+				process.stdout.write('033[1A\r');
 			}
 		}
 	}
+
+	cursorDown(i) {
+		if (i > 0) {
+			while(i--) {
+				process.stdout.write('033[1B\r');
+			}
+		}
+	}
+
+	cursorRight(i) {
+		if (i > 0) {
+			while(i--) {
+				process.stdout.write('033[1C\r');
+			}
+		}
+	}
+
+	cursorLeft(i) {
+		if (i > 0) {
+			while(i--) {
+				process.stdout.write('033[1D\r');
+			}
+		}
+	}
+
 }
 
 class Character {
