@@ -232,10 +232,23 @@ class TreasureHuntGame {
 		}
 
 		var draw = function() {
+			that.renderer.clearScreen();
+			that.drawHelp();
+
 			that.renderer.render(that.mapInfo);
 		}
 
 		this.game.initialize(update, draw);
+	}
+
+	drawHelp() {
+		console.log('Get the "!" over to the money sign!');
+		console.log('| Character | Control   | ');
+		console.log('| w         | Up        |');
+		console.log('| d         | Right     |');
+		console.log('| s         | Down      |');
+		console.log('| a         | Left      |');
+		console.log('| c         | Quit      |');
 	}
 }
 
@@ -252,6 +265,8 @@ class Renderer {
 	}
 
 	clearScreen() {
+		// hack way to 'clear' the screen. Ideally we would only redraw characters
+		// or sections that change. Need to take control of the pointer for that.
 		console.log("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 	}
 
@@ -310,8 +325,6 @@ class Renderer {
 	}
 
 	render(mapInfo) {
-		this.clearScreen();
-		this.drawHelp();
 
 		for (var row = 0; row < mapInfo.height; row++) {
 			// find all characters that need to be drawn in this row
@@ -329,16 +342,6 @@ class Renderer {
 			    console.log(output);
 			}
 		}
-	}
-
-	drawHelp() {
-		console.log('Get the "!" over to the money sign!');
-		console.log('| Character | Control   | ');
-		console.log('| w         | Up        |');
-		console.log('| d         | Right     |');
-		console.log('| s         | Down      |');
-		console.log('| a         | Left      |');
-		console.log('| c         | Quit      |');
 	}
 }
 
@@ -383,8 +386,13 @@ class Thread {
 		var minimumMillsecPerFrame = 1000/ desiredFramerate;
 	
 		var internalRun = function() {
+			var now = Date.now();
 			that.functionPointer();
-			setTimeout(internalRun, minimumMillsecPerFrame);	
+			var after = Date.now();
+
+			// if the function call takes a while, reduce the delay until the next execute
+			var nextDelay = Math.max(0, minimumMillsecPerFrame - (after - now));
+			setTimeout(internalRun, nextDelay);
 		};
 
 		// initial call
