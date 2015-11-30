@@ -31,25 +31,52 @@ function sleepFor( sleepDuration ){
 	while(new Date().getTime() < now + sleepDuration){ /* do nothing */ } 
 }
 
+class WinTextAnimaton {
+	constructor(centerX, centerY) {
+		this.centerX = centerX;
+	    this.centerY = centerY;
+	    this.frameSpeed = 600;
+	    this.lastFrame = Date.now();
+	    this.isVisible = false;
+	}
+
+	update(renderer, timeNow) {
+		if (timeNow - this.lastFrame > this.frameSpeed) {
+			this.isVisible = !this.isVisible;
+			this.lastFrame = timeNow;
+		}
+
+		this.fillRenderer(renderer);	
+	}
+
+	fillRenderer(renderer) {
+		if (this.isVisible) {
+			// add WIN in the center of the explosion.
+			renderer.addCharacter(new Character(this.centerX - 1, this.centerY, 'W'));
+			renderer.addCharacter(new Character(this.centerX - 0, this.centerY, 'I'));
+			renderer.addCharacter(new Character(this.centerX + 1, this.centerY, 'N'));	
+		}
+	}
+}
+
 class WinAnimation {
 	constructor(centerX, centerY) {
 		this.radius = -1;
 	    this.centerX = centerX;
 	    this.centerY = centerY;
+	    this.frameSpeed = 50;
+	    this.lastFrame = Date.now();
 	}
-  
-	animate(renderer) {
-		this.radius++;
-		this.fillRenderer(renderer);
+
+	update(renderer, timeNow) {
+		if (timeNow - this.lastFrame > this.frameSpeed) {
+			this.radius++;
+			this.lastFrame = timeNow;
+		}
+
+		this.fillRenderer(renderer);	
 	}
-  
-	addWinText(renderer) {
-		// add WIN in the center of the explosion.
-		renderer.addCharacter(new Character(this.centerX - 1, this.centerY, 'W'));
-		renderer.addCharacter(new Character(this.centerX - 0, this.centerY, 'I'));
-		renderer.addCharacter(new Character(this.centerX + 1, this.centerY, 'N'));
-	}
-  
+    
 	fillRenderer(renderer) {
 		// create explosion particles in a blast radius away from the center
 		for (var y = this.centerY - this.radius; y <= this.centerY + this.radius; y++) {
@@ -70,6 +97,23 @@ class WinAnimation {
 	}
 }
 
+class AnimationHandler {
+	constructor(renderer) {
+		this.renderer = renderer;
+		this.animations = [];
+	}
+
+	addAnimation(animation) {
+		this.animations.push(animation);
+	}
+
+	update(timeNow) {
+		for (var i = 0; i < this.animations.length; i++) {
+			this.animations[i].update(this.renderer, timeNow);  
+	  	}	
+	}	
+}
+
 class Game {
 	constructor() {
 		this.lastkeyPresses = [];
@@ -79,12 +123,6 @@ class Game {
 	}
 
 	initialize(updateFunction, drawFunction) {
-		console.log("initialize game");
-		var runnable = new Object();
-		runnable.run = this.updateFunction;
-
-		var runnable2 = new Object();
-		runnable2.run = this.drawFunction;
 		this.threadUpdate = new Thread(updateFunction);
 		this.threadDraw = new Thread(drawFunction);
 
@@ -96,6 +134,7 @@ class Game {
 		process.stdin.on('readable', function(data) {
 			var key = process.stdin.read();
 			if (key) {
+				// TODO: get a better system for handling key caching
 				that.lastkeyPresses.push(key);
 			}
 		});
@@ -127,15 +166,11 @@ class TreasureHuntGame {
 
 		this.goal = new Character(goalX, goalY, '$');
 		this.renderer = new Renderer();
-		this.winAnimations = [];
+		this.animationHandler = new AnimationHandler(this.renderer);
 
 		// this should probably turn into a state machine
 		this.isWinning = false;
 	}
-
-	addAnimation() {
-		this.winAnimations.push(new WinAnimation(this.goal.x, this.goal.y));
-	};
 
 	initialize() {
 		var that = this;
@@ -154,30 +189,19 @@ class TreasureHuntGame {
 
 		// this is a blocking animation that 'explodes' the 
 		//...goal into an explosion
-		var doWinAnimation = function() {
-			var now = Date.now();
-
-			// clear everything
-			that.renderer.removeAllCharacters();
-		  
-			for (var i = 0; i < that.winAnimations.length; i++) {
-				if (now - lastBlinkTime % 10 > 3) {
-					that.winAnimations[i].addWinText(that.renderer);
-		  		}
-			    that.winAnimations[i].animate(that.renderer);  
-		  	}
-		  
-		  	// spawn a new animation based on EXPLOSION_SPEED
+		var spawnExplosions = function(now) {
+			// spawn a new animation based on EXPLOSION_SPEED
 		  	if (now - lastExplosionTime > EXPLOSION_SPEED) {
-		  		that.addAnimation();
+		  		that.animationHandler.addAnimation(new WinAnimation(that.goal.x, that.goal.y));
 		  		lastExplosionTime = now;
 		  	}
 		};
 
 
 		var update = function () {
+			var now = Date.now();
 			var key = that.game.getLastKeypress();
-
+			
 			if (null !== key) {
 				if (key.toString() == 'c') {
 					process.exit();
@@ -187,14 +211,24 @@ class TreasureHuntGame {
 
 					if (that.character.x == that.goal.x && that.character.y == that.goal.y) {
 						that.isWinning = true;
+						that.animationHandler.addAnimation(new WinAnimation(that.goal.x, that.goal.y));
+						that.animationHandler.addAnimation(new WinTextAnimaton(that.goal.x, that.goal.y));
 					} 
 				}
 			}
 
 			if (that.isWinning) {
+				// clear everything
+				that.renderer.removeAllCharacters();
+		  
 				// win condition!
-				doWinAnimation();	
+				spawnExplosions(now);
 			}
+
+			// this currently adds all the characters to the renderer so it should be 
+			//...after the removeAllCharacters() call above. Need to decide if this is
+			//...an update function or a draw function...
+		  	that.animationHandler.update(now);
 		}
 
 		var draw = function() {
@@ -298,7 +332,7 @@ class Renderer {
 	}
 
 	drawHelp() {
-		console.log('You have 10 seconds to get the "!" over to the money sign!');
+		console.log('Get the "!" over to the money sign!');
 		console.log('| Character | Control   | ');
 		console.log('| w         | Up        |');
 		console.log('| d         | Right     |');
