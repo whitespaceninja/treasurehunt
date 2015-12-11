@@ -64,12 +64,13 @@ class WinAnimation {
 		this.radius = -1;
 	    this.centerX = centerX;
 	    this.centerY = centerY;
-	    this.frameSpeed = 50;
+	    this.frameSpeed = 60;
 	    this.lastFrame = Date.now();
 	}
 
 	update(renderer, timeNow) {
-		if (timeNow - this.lastFrame > this.frameSpeed) {
+		var elapsed = timeNow - this.lastFrame;
+		if (elapsed >= this.frameSpeed) {
 			this.radius++;
 			this.lastFrame = timeNow;
 		}
@@ -119,18 +120,20 @@ class Game {
 		this.lastkeyPresses = [];
 		this.threadUpdate = null;
 		this.threadDraw = null;
-		console.log("game constructor");
 	}
 
 	initialize(updateFunction, drawFunction) {
 		this.threadUpdate = new Thread(updateFunction);
 		this.threadDraw = new Thread(drawFunction);
 
-		this.threadUpdate.start(10);
-		this.threadDraw.start(10);
+		this.threadUpdate.start(30); //update 30 times per second
+		this.threadDraw.start(10); //draw 10 times per second
 
 		var that = this;
 
+		// this allows us to read keys directly from input without ENTER
+		process.stdin.setRawMode(true);
+		
 		process.stdin.on('readable', function(data) {
 			var key = process.stdin.read();
 			if (key) {
@@ -138,9 +141,6 @@ class Game {
 				that.lastkeyPresses.push(key);
 			}
 		});
-	
-		// this allows us to read keys directly from input without ENTER
-		process.stdin.setRawMode(true);
 	}
 
 	// this method can only be called once
@@ -197,6 +197,13 @@ class TreasureHuntGame {
 		  	}
 		};
 
+		var checkWinCondition = function() {
+			if (that.character.x == that.goal.x && that.character.y == that.goal.y) {
+				that.isWinning = true;
+				that.animationHandler.addAnimation(new WinAnimation(that.goal.x, that.goal.y));
+				that.animationHandler.addAnimation(new WinTextAnimaton(that.goal.x, that.goal.y));
+			}
+		}
 
 		var update = function () {
 			var now = Date.now();
@@ -209,11 +216,7 @@ class TreasureHuntGame {
 					// update character movement
 					that.character.move(key.toString(), that.mapInfo.width, that.mapInfo.height);
 
-					if (that.character.x == that.goal.x && that.character.y == that.goal.y) {
-						that.isWinning = true;
-						that.animationHandler.addAnimation(new WinAnimation(that.goal.x, that.goal.y));
-						that.animationHandler.addAnimation(new WinTextAnimaton(that.goal.x, that.goal.y));
-					} 
+					checkWinCondition();
 				}
 			}
 
@@ -232,8 +235,8 @@ class TreasureHuntGame {
 		}
 
 		var draw = function() {
-			//that.renderer.clearScreen();
-			//that.drawHelp();
+			that.renderer.clearScreen();
+			that.drawHelp();
 
 			that.renderer.render(that.mapInfo);
 		}
@@ -262,21 +265,15 @@ class MapInfo {
 class Renderer {
 	constructor() {
     	this.characters = [];
-    	this.readline = require('readline');
-		this.rl = this.readline.createInterface({
-		  input: process.stdin,
-		  output: process.stdout
-		});
+	}
+
+	clearScreen() {
+		// escape sequence required to clear the screen and set cursor at 0,0
+		process.stdout.write("\u001b[2J\u001b[0;0H");
 	}
 
 	render(mapInfo) {
-		for (var i = 0; i < this.characters.length; i++) {
-			var thisChar = this.characters[i];
-			this.readline.cursorTo(this.rl, thisChar.x, thisChar.y);
-			process.stdout.write(thisChar.symbol);
-		}
-
-		/*for (var row = 0; row < mapInfo.height; row++) {
+		for (var row = 0; row < mapInfo.height; row++) {
 			// find all characters that need to be drawn in this row
 			var charactersInRow = this.getCharactersInRow(row);;
 		  
@@ -291,13 +288,7 @@ class Renderer {
 			    var output = this.getOutputLine(charactersInRow, mapInfo);
 			    console.log(output);
 			}
-		}*/
-	}
-
-	clearScreen() {
-		// hack way to 'clear' the screen. Ideally we would only redraw characters
-		// or sections that change. Need to take control of the pointer for that.
-		console.log("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+		}
 	}
 
 	addCharacter(character) {
@@ -353,49 +344,6 @@ class Renderer {
 
 		return output;
 	}
-
-	cursorTo(x, y) {
-		//Position the Cursor:
-		//\033[<L>;<C>H
-		// Or
-		//\033[<L>;<C>f
-		//puts the cursor at line L and column C.
-		var output = '033[' + y + ';' + x + 'H\r';
-		process.stdout.write(output);
-	}
-
-	cursorUp(i) {
-		if (i > 0) {
-			while(i--) {
-				process.stdout.write('033[1A\r');
-			}
-		}
-	}
-
-	cursorDown(i) {
-		if (i > 0) {
-			while(i--) {
-				process.stdout.write('033[1B\r');
-			}
-		}
-	}
-
-	cursorRight(i) {
-		if (i > 0) {
-			while(i--) {
-				process.stdout.write('033[1C\r');
-			}
-		}
-	}
-
-	cursorLeft(i) {
-		if (i > 0) {
-			while(i--) {
-				process.stdout.write('033[1D\r');
-			}
-		}
-	}
-
 }
 
 class Character {
