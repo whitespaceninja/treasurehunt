@@ -44,13 +44,11 @@ class WinTextAnimaton {
 	    this.isVisible = false;
 	}
 
-	update(renderer, timeNow) {
+	update(timeNow) {
 		if (timeNow - this.lastFrame > this.frameSpeed) {
 			this.isVisible = !this.isVisible;
 			this.lastFrame = timeNow;
 		}
-
-		this.fillRenderer(renderer);	
 	}
 
 	fillRenderer(renderer) {
@@ -61,25 +59,30 @@ class WinTextAnimaton {
 			renderer.addCharacter(new Character(this.centerX + 1, this.centerY, 'N'));	
 		}
 	}
+
+	isExpired() {
+		// this animation never goes away
+		return false;
+	}
 }
 
 class WinAnimation {
-	constructor(centerX, centerY) {
+	constructor(centerX, centerY, maxX, maxY) {
 		this.radius = -1;
 	    this.centerX = centerX;
 	    this.centerY = centerY;
 	    this.frameSpeed = 60;
 	    this.lastFrame = Date.now();
+	    this.maxX = maxX;
+	    this.maxY = maxY;
 	}
 
-	update(renderer, timeNow) {
+	update(timeNow) {
 		var elapsed = timeNow - this.lastFrame;
 		if (elapsed >= this.frameSpeed) {
 			this.radius++;
 			this.lastFrame = timeNow;
 		}
-
-		this.fillRenderer(renderer);	
 	}
     
 	fillRenderer(renderer) {
@@ -100,6 +103,13 @@ class WinAnimation {
 			}
 		}
 	}
+
+	isExpired() {
+		return  this.centerX - (this.radius * 2) < 0 &&
+				this.centerX + (this.radius * 2) > this.maxX &&
+				this.centerY - (this.radius * 2) < 0 &&
+				this.centerY + (this.radius * 2) > this.maxY;
+	}
 }
 
 class AnimationHandler {
@@ -113,9 +123,17 @@ class AnimationHandler {
 	}
 
 	update(timeNow) {
-		for (var i = 0; i < this.animations.length; i++) {
-			this.animations[i].update(this.renderer, timeNow);  
-	  	}	
+		for (var i = this.animations.length - 1; i >= 0 ; i--) {
+			var animation = this.animations[i];
+			
+			animation.update(timeNow);
+			if (animation.isExpired()) {
+				// remove it from our list
+				this.animations.splice(i, 1);
+			} else {
+				this.animations[i].fillRenderer(this.renderer);
+			}
+	  	}
 	}	
 }
 
@@ -130,36 +148,34 @@ class Game {
 		this.threadUpdate = new Thread(updateFunction);
 		this.threadDraw = new Thread(drawFunction);
 
-		this.threadUpdate.start(10); //update 30 times per second
-		this.threadDraw.start(6); //draw 10 times per second
+		this.threadUpdate.start(10); //update X times per second
+		this.threadDraw.start(6); //draw X times per second
 
 		var that = this;
 
 		if (globalOptions['playInBrowser']) {
 			function keyDownHandler(e) {
-				var key = e.keyCode;//process.stdin.read();
+				var key = e.keyCode;
 				if (key) {
-					// TODO: get a better system for handling key caching
 					that.lastkeyPresses.push(key);
 				}
 			};
 
+			// listen to the browser keys instad of direct console input
 			document.addEventListener("keydown", keyDownHandler, false);	
 		}
 		else {
-			// this allows us to read keys directly from input without ENTER
+			// this allows us to read keys directly from console input without ENTER
 			process.stdin.setRawMode(true);	
 			process.stdin.on('readable', function(data) {	
 				var key = process.stdin.read();
 				if (key) {
-					// TODO: get a better system for handling key caching
 					that.lastkeyPresses.push(key);
 				}
 			});
 		}
 	}
 
-	// this method can only be called once
 	getLastKeypress() {
 		if (this.lastkeyPresses.length <= 0) {
 			return null;
@@ -216,8 +232,14 @@ class TreasureHuntGame {
 		var checkWinCondition = function() {
 			if (that.character.x == that.goal.x && that.character.y == that.goal.y) {
 				that.isWinning = true;
-				that.animationHandler.addAnimation(new WinAnimation(that.goal.x, that.goal.y));
-				that.animationHandler.addAnimation(new WinTextAnimaton(that.goal.x, that.goal.y));
+
+				that.animationHandler.addAnimation(
+					new WinAnimation(that.goal.x, that.goal.y, that.mapInfo.width, that.mapInfo.height)
+				);
+
+				that.animationHandler.addAnimation(
+					new WinTextAnimaton(that.goal.x, that.goal.y)
+				);
 			}
 		}
 
@@ -270,7 +292,6 @@ class TreasureHuntGame {
 		console.log('| s         | Down      |');
 		console.log('| a         | Left      |');
 		console.log('| c         | Quit      |');
-		console.log('play in browser: ' + globalOptions['playInBrowser']);
 	}
 }
 
