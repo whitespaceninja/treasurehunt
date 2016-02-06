@@ -17,6 +17,10 @@ Use w, a, s, d to move your character towards the $ sign
 
 "use strict";
 
+var globalOptions = {
+	'playInBrowser': false
+};
+
 function run() {  
 	var thGame = new TreasureHuntGame();
 	thGame.initialize();
@@ -126,21 +130,33 @@ class Game {
 		this.threadUpdate = new Thread(updateFunction);
 		this.threadDraw = new Thread(drawFunction);
 
-		this.threadUpdate.start(30); //update 30 times per second
-		this.threadDraw.start(10); //draw 10 times per second
+		this.threadUpdate.start(10); //update 30 times per second
+		this.threadDraw.start(6); //draw 10 times per second
 
 		var that = this;
 
-		// this allows us to read keys directly from input without ENTER
-		process.stdin.setRawMode(true);
-		
-		process.stdin.on('readable', function(data) {
-			var key = process.stdin.read();
-			if (key) {
-				// TODO: get a better system for handling key caching
-				that.lastkeyPresses.push(key);
-			}
-		});
+		if (globalOptions['playInBrowser']) {
+			function keyDownHandler(e) {
+				var key = e.keyCode;//process.stdin.read();
+				if (key) {
+					// TODO: get a better system for handling key caching
+					that.lastkeyPresses.push(key);
+				}
+			};
+
+			document.addEventListener("keydown", keyDownHandler, false);	
+		}
+		else {
+			// this allows us to read keys directly from input without ENTER
+			process.stdin.setRawMode(true);	
+			process.stdin.on('readable', function(data) {	
+				var key = process.stdin.read();
+				if (key) {
+					// TODO: get a better system for handling key caching
+					that.lastkeyPresses.push(key);
+				}
+			});
+		}
 	}
 
 	// this method can only be called once
@@ -210,11 +226,13 @@ class TreasureHuntGame {
 			var key = that.game.getLastKeypress();
 			
 			if (null !== key) {
-				if (key.toString() == 'c') {
+				var gameCommand = keyMap.getGameCommand(key.toString());
+
+				if (gameCommand == 'QUIT') {
 					process.exit();
 				} else if (!that.isWinning) {	
 					// update character movement
-					that.character.move(key.toString(), that.mapInfo.width, that.mapInfo.height);
+					that.character.move(gameCommand, that.mapInfo.width, that.mapInfo.height);
 
 					checkWinCondition();
 				}
@@ -252,6 +270,7 @@ class TreasureHuntGame {
 		console.log('| s         | Down      |');
 		console.log('| a         | Left      |');
 		console.log('| c         | Quit      |');
+		console.log('play in browser: ' + globalOptions['playInBrowser']);
 	}
 }
 
@@ -269,25 +288,35 @@ class Renderer {
 
 	clearScreen() {
 		// escape sequence required to clear the screen and set cursor at 0,0
-		process.stdout.write("\u001b[2J\u001b[0;0H");
+		console.log("\u001b[2J\u001b[0;0H");
+		//process.stdout.write("\u001b[2J\u001b[0;0H");
 	}
 
 	render(mapInfo) {
 		for (var row = 0; row < mapInfo.height; row++) {
+
+			var output = '|';
+
 			// find all characters that need to be drawn in this row
 			var charactersInRow = this.getCharactersInRow(row);;
 		  
 			// if there aren't any, draw a blank line
 			if (charactersInRow.length <= 0) {
-		    	console.log(' ');
+				output = output + row;
+		    	for (var col = 0; col < mapInfo.width; col++) {
+		    		output = output + ' ';
+		    	}
 			} else {
 			    // else there must be characters here, sort them first...
 			    charactersInRow.sort(this.compareX);
 			    
 			    // ...then draw them all. Put it all in one string for quick render.
-			    var output = this.getOutputLine(charactersInRow, mapInfo);
-			    console.log(output);
+			    output = output + this.getOutputLine(charactersInRow, mapInfo);
 			}
+
+			output = output + '|';
+
+			console.log(output);
 		}
 	}
 
@@ -355,19 +384,16 @@ class Character {
   
 	move(direction, maxX, maxY) {
 		switch(direction) {
-		  case 'a': 
+		  case 'LEFT': 
 		    this.x--; break;
 		  
-		  case 'e': 
-		  case 'd': 
+		  case 'RIGHT':
 		    this.x++; break;
 		  
-		  case ',': 
-		  case 'w': 
+		  case 'UP':
 		    this.y--; break;
 		  
-		  case 'o':
-		  case 's':
+		  case 'DOWN':
 		    this.y++; break;
 		}
 
@@ -401,5 +427,38 @@ class Thread {
 	}
 }
 
-run();
+class KeyMap {
+	constructor() {
+	}
 
+	getGameCommand(key) {
+		switch(key) {
+		  case 'a': 
+		  case "65":
+		    return 'LEFT';
+		  
+		  case 'e': 
+		  case 'd': 
+		  case "68":
+		    return 'RIGHT';
+		  
+		  case ',': 
+		  case 'w': 
+		  case "87":
+		    return 'UP';
+		  
+		  case 'o':
+		  case 's':
+		  case "83":
+		    return 'DOWN';
+
+		  case 'c':
+		  case '67':
+		  	return 'QUIT';
+		}
+	}
+}
+
+var keyMap = new KeyMap();
+
+run();
