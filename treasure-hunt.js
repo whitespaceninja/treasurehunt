@@ -542,7 +542,6 @@ class ImageAsciified {
 	
 	getPixels(this.path, function(err, pixels) {
 	    if(err) {
-		//console.log("Bad image path");
 		return;
 	    }
 
