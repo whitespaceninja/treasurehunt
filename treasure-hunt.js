@@ -212,6 +212,8 @@ class TreasureHuntGame {
 	this.map = new Map(map1);
 	this.character = new Character(20, 10, '!');
 
+	this.imageTest = new ImageAsciified("test.jpg");
+	
 	// put the goal in a random spot on the map 
 	// (there's a small chance it will be on the player but I don't care right now)
 	var goalX = randomNumber(this.map.width - 1);
@@ -236,8 +238,13 @@ class TreasureHuntGame {
 	// add game objects to renderer
 	this.renderer.addCharacter(this.character);
 	this.renderer.addCharacter(this.goal);
-	this.renderer.addCharacterList(this.map.getMapCharacters());
+//	this.renderer.addCharacterList(this.map.getMapCharacters());
 
+	var fillRenderer = function(characters) {
+	    that.renderer.addCharacterList(characters);
+	}
+	this.imageTest.load(fillRenderer);
+	
 	// first draw of render
 	this.renderer.render(this.map);
 
@@ -298,7 +305,7 @@ class TreasureHuntGame {
 
 	var draw = function() {
 	    that.renderer.clearScreen();
-	    that.drawHelp();
+	    //that.drawHelp();
 	    that.renderer.render(that.map);
 	}
 
@@ -342,6 +349,8 @@ class Map {
 class Renderer {
     constructor() {
     	this.characters = [];
+	this.maxX = 0;
+	this.maxY = 0;
     }
 
     clearScreen() {
@@ -351,7 +360,7 @@ class Renderer {
     }
 
     render(map) {
-	for (var row = 0; row < map.height; row++) {
+	for (var row = 0; row < this.maxY; row++) {
 	    var output = '';
 
 	    // find all characters that need to be drawn in this row
@@ -376,11 +385,13 @@ class Renderer {
 
     addCharacter(character) {
 	this.characters.push(character);
+	this.maxX = Math.max(this.maxX, character.x);
+	this.maxY = Math.max(this.maxY, character.y);
     }
 
     addCharacterList(characterList) {
 	for (var i = 0; i < characterList.length; i++) {
-	    this.characters.push(characterList[i]);
+	    this.addCharacter(characterList[i]);
 	}
     }
 
@@ -519,6 +530,65 @@ class KeyMap {
     }
 }
 
-var keyMap = new KeyMap();
+class ImageAsciified {
+    constructor(path) {
+	this.path = path;
+	this.pixels = null;
+    }
 
+    load(callback) {
+	var getPixels = require("get-pixels")
+	var that = this;
+	
+	getPixels(this.path, function(err, pixels) {
+	    if(err) {
+		//console.log("Bad image path");
+		return;
+	    }
+
+	    that.pixels = pixels;
+	    console.log("got pixels", pixels.shape.slice());
+	    callback(that.getCharacters());
+	});
+    }
+
+    getCharacters() {
+	var characters = [];
+	for(var i = 0; i < this.pixels.shape[0]; ++i) {
+	    for(var j = 0; j < this.pixels.shape[1]; ++j) {
+		var R = this.pixels.get(i, j, 0);
+		var G = this.pixels.get(i, j, 1);
+		var B = this.pixels.get(i, j, 2);
+
+		var thisChar = ' ';
+		var weight = R + G + B;
+		if (weight < 50) {
+		    thisChar = 'A';
+		} else if (weight < 100) {
+		    thisChar = 'B';
+		} else if (weight < 200) {
+		    thisChar = 'C';
+		} else if (weight < 300) {
+		    thisChar = 'D';
+		} else if (weight < 400) {
+		    thisChar = 'E';
+		} else if (weight < 500) {
+		    thisChar = 'F';
+		} else if (weight < 600) {
+		    thisChar = 'O';
+		} else if (weight < 700) {
+		    thisChar = '.';
+		} else if (weight < 800) {
+		    thisChar = ' ';
+		}
+		
+		console.log('thisWeight ' + weight + '\n');
+		characters.push(new Character(i, j, thisChar));
+	    }
+	}
+	return characters;
+    }    
+}
+
+var keyMap = new KeyMap();
 run();
