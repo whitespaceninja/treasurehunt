@@ -212,7 +212,9 @@ class TreasureHuntGame {
 	this.map = new Map(map1);
 	this.character = new Character(20, 10, '!');
 
-	this.imageTest = new ImageAsciified("test2.jpg");
+	//this.imageTest = new ImageAsciified("test3.jpg", 80, 50);
+	this.imageTest = new ImageAsciified("test2.jpg", 100, 50);
+	//this.imageTest = new ImageAsciified("test.jpg", 30, 30);
 	
 	// put the goal in a random spot on the map 
 	// (there's a small chance it will be on the player but I don't care right now)
@@ -531,9 +533,11 @@ class KeyMap {
 }
 
 class ImageAsciified {
-    constructor(path) {
+    constructor(path, desiredWidth, desiredHeight) {
 	this.path = path;
 	this.pixels = null;
+	this.desiredWidth = desiredWidth;
+	this.desiredHeight = desiredHeight;
     }
 
     load(callback) {
@@ -549,23 +553,23 @@ class ImageAsciified {
 
 	    that.pixels = pixels;
 	    console.log("got pixels", pixels.shape.slice());
-	    callback(that.getCharacters(100, 50));
+	    callback(that.getCharacters());
 	});
     }
 
-    getCharacters(desiredWidth, desiredHeight) {
+    getCharacters() {
 	var characters = [];
 	var pixelWidth = this.pixels.shape[0];
 	var pixelHeight = this.pixels.shape[1];
-	var pixelsPerCharacterW = pixelWidth / desiredWidth;
-	var pixelsPerCharacterH = pixelHeight / desiredHeight;
+	var pixelsPerCharacterW = pixelWidth / this.desiredWidth;
+	var pixelsPerCharacterH = pixelHeight / this.desiredHeight;
 	console.log('pixelWidth: ' + pixelWidth + '\n');
 	console.log('pixelHeight: ' + pixelHeight + '\n');
 	console.log('pixelsPerCharacterW: ' + pixelsPerCharacterW + '\n');
 	console.log('pixelsPerCharacterH: ' + pixelsPerCharacterH + '\n');
 	
-	for(var i = 0; i < desiredHeight; ++i) {
-	    for(var j = 0; j < desiredWidth; ++j) {
+	for(var i = 0; i < this.desiredHeight; ++i) {
+	    for(var j = 0; j < this.desiredWidth; ++j) {
 
 		var pixelSum = 0;
 
@@ -584,23 +588,23 @@ class ImageAsciified {
 
 		var weight = pixelSum / (pixelsPerCharacterW * pixelsPerCharacterH);
 		var thisChar = ' ';
-		if (weight < 50) {
-		    thisChar = '#';
-		} else if (weight < 100) {
+		if (weight < 100) {
 		    thisChar = '#';
 		} else if (weight < 200) {
 		    thisChar = 'X';
 		} else if (weight < 300) {
+		    thisChar = 'x';
+		} else if (weight < 350) {
 		    thisChar = '/';
-		} else if (weight < 400) {
+		} else if (weight < 430) {
 		    thisChar = '/';
-		} else if (weight < 500) {
-		    thisChar = '~';
+		} else if (weight < 550) {
+		    thisChar = '"';
 		} else if (weight < 600) {
 		    thisChar = '.';
-		} else if (weight < 700) {
+		} else if (weight < 675) {
 		    thisChar = '`';
-		} else if (weight < 800) {
+		} else if (weight < 768) {
 		    thisChar = ' ';
 		}	
 		
