@@ -212,7 +212,7 @@ class TreasureHuntGame {
 	this.map = new Map(map1);
 	this.character = new Character(20, 10, '!');
 
-	this.imageTest = new ImageAsciified("test.jpg");
+	this.imageTest = new ImageAsciified("test2.jpg");
 	
 	// put the goal in a random spot on the map 
 	// (there's a small chance it will be on the player but I don't care right now)
@@ -283,7 +283,7 @@ class TreasureHuntGame {
 		    process.exit();
 		} else if (!that.isWinning) {	
 		    // update character movement
-		    that.character.move(gameCommand, that.map.width, that.map.height);
+		    that.character.move(gameCommand, that.map.maxX, that.map.maxY);
 
 		    checkWinCondition();
 		}
@@ -376,7 +376,7 @@ class Renderer {
 		charactersInRow.sort(this.compareX);
 		
 		// ...then draw them all. Put it all in one string for quick render.
-		output = output + this.getOutputLine(charactersInRow, map);
+		output = output + this.getOutputLine(charactersInRow);
 	    }
 
 	    console.log(output);
@@ -429,10 +429,10 @@ class Renderer {
 	return charactersInRow;
     }
 
-    getOutputLine(charactersInRow, map) {
+    getOutputLine(charactersInRow) {
 	// ...then draw them all. Put it all in one string for quick render.
 	var output = '';        
-	for (var col = 0; col < map.width; col++) {
+	for (var col = 0; col < this.maxX; col++) {
 	    var characterInPosition = this.findCharacterAtX(charactersInRow, col);
 
 	    if (characterInPosition != null) {
@@ -539,6 +539,8 @@ class ImageAsciified {
     load(callback) {
 	var getPixels = require("get-pixels")
 	var that = this;
+
+	console.log('loading');
 	
 	getPixels(this.path, function(err, pixels) {
 	    if(err) {
@@ -547,42 +549,62 @@ class ImageAsciified {
 
 	    that.pixels = pixels;
 	    console.log("got pixels", pixels.shape.slice());
-	    callback(that.getCharacters());
+	    callback(that.getCharacters(100, 50));
 	});
     }
 
-    getCharacters() {
+    getCharacters(desiredWidth, desiredHeight) {
 	var characters = [];
-	for(var i = 0; i < this.pixels.shape[0]; ++i) {
-	    for(var j = 0; j < this.pixels.shape[1]; ++j) {
-		var R = this.pixels.get(i, j, 0);
-		var G = this.pixels.get(i, j, 1);
-		var B = this.pixels.get(i, j, 2);
+	var pixelWidth = this.pixels.shape[0];
+	var pixelHeight = this.pixels.shape[1];
+	var pixelsPerCharacterW = pixelWidth / desiredWidth;
+	var pixelsPerCharacterH = pixelHeight / desiredHeight;
+	console.log('pixelWidth: ' + pixelWidth + '\n');
+	console.log('pixelHeight: ' + pixelHeight + '\n');
+	console.log('pixelsPerCharacterW: ' + pixelsPerCharacterW + '\n');
+	console.log('pixelsPerCharacterH: ' + pixelsPerCharacterH + '\n');
+	
+	for(var i = 0; i < desiredHeight; ++i) {
+	    for(var j = 0; j < desiredWidth; ++j) {
 
+		var pixelSum = 0;
+
+		for(var k = 0; k < pixelsPerCharacterW; k++) {
+		    for (var z = 0; z < pixelsPerCharacterH; z++) {
+			var x = (j * pixelsPerCharacterW) + k;
+			var y = (i * pixelsPerCharacterH) + z;
+			
+			var R = this.pixels.get(x, y, 0);
+			var G = this.pixels.get(x, y, 1);
+			var B = this.pixels.get(x, y, 2);
+
+			pixelSum += R + G + B;
+		    }
+		}
+
+		var weight = pixelSum / (pixelsPerCharacterW * pixelsPerCharacterH);
 		var thisChar = ' ';
-		var weight = R + G + B;
 		if (weight < 50) {
-		    thisChar = 'A';
+		    thisChar = '#';
 		} else if (weight < 100) {
-		    thisChar = 'B';
+		    thisChar = '#';
 		} else if (weight < 200) {
-		    thisChar = 'C';
+		    thisChar = 'X';
 		} else if (weight < 300) {
-		    thisChar = 'D';
+		    thisChar = '/';
 		} else if (weight < 400) {
-		    thisChar = 'E';
+		    thisChar = '/';
 		} else if (weight < 500) {
-		    thisChar = 'F';
+		    thisChar = '~';
 		} else if (weight < 600) {
-		    thisChar = 'O';
-		} else if (weight < 700) {
 		    thisChar = '.';
+		} else if (weight < 700) {
+		    thisChar = '`';
 		} else if (weight < 800) {
 		    thisChar = ' ';
-		}
+		}	
 		
-		console.log('thisWeight ' + weight + '\n');
-		characters.push(new Character(i, j, thisChar));
+		characters.push(new Character(j, i, thisChar));
 	    }
 	}
 	return characters;
