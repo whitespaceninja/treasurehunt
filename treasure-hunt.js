@@ -212,9 +212,13 @@ class TreasureHuntGame {
 	this.map = new Map(map1);
 	this.character = new Character(20, 10, '!');
 
+	//this.imageTest = new ImageAsciified("bobby.png", 400, 200);
+	//this.imageTest = new ImageAsciified("test6.jpg", 400, 100);
+	//this.imageTest = new ImageAsciified("test5.jpg", 400, 300);
+	//this.imageTest = new ImageAsciified("test4.jpg", 75 * 4, 50 * 4);
 	//this.imageTest = new ImageAsciified("test3.jpg", 80, 50);
-	this.imageTest = new ImageAsciified("test2.jpg", 100, 50);
-	//this.imageTest = new ImageAsciified("test.jpg", 30, 30);
+	//this.imageTest = new ImageAsciified("test2.jpg", 100, 50);
+	this.imageTest = new ImageAsciified("test.jpg", 30, 18);
 	
 	// put the goal in a random spot on the map 
 	// (there's a small chance it will be on the player but I don't care right now)
@@ -242,10 +246,16 @@ class TreasureHuntGame {
 	this.renderer.addCharacter(this.goal);
 //	this.renderer.addCharacterList(this.map.getMapCharacters());
 
+	//=======================================
+	// Ascii Test Start
+	//=======================================
 	var fillRenderer = function(characters) {
 	    that.renderer.addCharacterList(characters);
 	}
 	this.imageTest.load(fillRenderer);
+	//=======================================
+	// Ascii Test End
+	//=======================================
 	
 	// first draw of render
 	this.renderer.render(this.map);
@@ -552,7 +562,6 @@ class ImageAsciified {
 	    }
 
 	    that.pixels = pixels;
-	    console.log("got pixels", pixels.shape.slice());
 	    callback(that.getCharacters());
 	});
     }
@@ -561,32 +570,33 @@ class ImageAsciified {
 	var characters = [];
 	var pixelWidth = this.pixels.shape[0];
 	var pixelHeight = this.pixels.shape[1];
-	var pixelsPerCharacterW = pixelWidth / this.desiredWidth;
-	var pixelsPerCharacterH = pixelHeight / this.desiredHeight;
-	console.log('pixelWidth: ' + pixelWidth + '\n');
-	console.log('pixelHeight: ' + pixelHeight + '\n');
-	console.log('pixelsPerCharacterW: ' + pixelsPerCharacterW + '\n');
-	console.log('pixelsPerCharacterH: ' + pixelsPerCharacterH + '\n');
+	var pixelsPerCharacterW = Math.round(pixelWidth / this.desiredWidth, 0);
+	var pixelsPerCharacterH = Math.round(pixelHeight / this.desiredHeight, 0);
 	
 	for(var i = 0; i < this.desiredHeight; ++i) {
 	    for(var j = 0; j < this.desiredWidth; ++j) {
 
 		var pixelSum = 0;
-
+		var numPixels = 0;
+		
 		for(var k = 0; k < pixelsPerCharacterW; k++) {
 		    for (var z = 0; z < pixelsPerCharacterH; z++) {
 			var x = (j * pixelsPerCharacterW) + k;
 			var y = (i * pixelsPerCharacterH) + z;
+
+			if (x >= pixelWidth || y >= pixelHeight)
+			    break;
 			
 			var R = this.pixels.get(x, y, 0);
 			var G = this.pixels.get(x, y, 1);
 			var B = this.pixels.get(x, y, 2);
 
 			pixelSum += R + G + B;
+			numPixels++;
 		    }
 		}
 
-		var weight = pixelSum / (pixelsPerCharacterW * pixelsPerCharacterH);
+		var weight = pixelSum / numPixels;
 		var thisChar = ' ';
 		if (weight < 100) {
 		    thisChar = '#';
