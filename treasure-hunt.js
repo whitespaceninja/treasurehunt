@@ -1,4 +1,4 @@
-
+NN
 
 /*
   HOW TO PLAY
@@ -212,12 +212,6 @@ class TreasureHuntGame {
 	this.map = new Map(map1);
 	this.character = new Character(20, 10, '!');
 
-	//this.imageTest = new ImageAsciified("bobby.png", 400, 200);
-	//this.imageTest = new ImageAsciified("test6.jpg", 400, 100);
-	//this.imageTest = new ImageAsciified("test5.jpg", 400, 300);
-	//this.imageTest = new ImageAsciified("test4.jpg", 75 * 4, 50 * 4);
-	//this.imageTest = new ImageAsciified("test3.jpg", 80, 50);
-	//this.imageTest = new ImageAsciified("test2.jpg", 100, 50);
 	this.imageTest = new ImageAsciified("test.jpg", 30, 18);
 	
 	// put the goal in a random spot on the map 
