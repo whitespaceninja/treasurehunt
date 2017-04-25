@@ -148,8 +148,6 @@ class ImageAsciified {
 	var getPixels = require("get-pixels")
 	var that = this;
 
-	console.log('loading');
-	
 	getPixels(this.path, function(err, pixels) {
 	    if(err) {
 		return;
@@ -157,8 +155,6 @@ class ImageAsciified {
 
 	    that.pixels = pixels;
 	    callback(that.getCharacters());
-
-	    that.printMappings();
 	});
     }
 
@@ -215,46 +211,47 @@ class ImageAsciified {
     getAsciiMapping(inverse) {
 	if (this.inverse) {
 	    return [
-		[80, ' '],
-		[130, '`'],
-		[200, '.'],
-		[250, '"'],
-		[300, '/'],
-		[350, '*'],
-		[425, '+'],
-		[550, 'v'],
-		[675, 'X'],
-		[768, '#']
+		[40,  ' '],
+		[80,  '`'],
+		[120, '.'],
+		[160, '"'],
+		[200, ':'],
+		[240, ';'],
+		[280, '+'],
+		[320, '/'],
+		[360, 'r'],
+		[400, 'c'],
+		[440, 'v'],
+		[480, 'x'],
+		[520, 'Y'],
+		[630, 'X'],
+		[680, '&'],
+		[720, '#'],
+		[760, '@']
 	    ];
 	}
 	
 	return [
-	    [100, '#'],
-	    [200, 'X'],
-	    [300, 'x'],
-	    [350, '/'],
-	    [430, '/'],
-	    [559, '"'],
-	    [600, '.'],
-	    [675, '`'],
-	    [768, ' ']
+	    [40,  '@'],
+	    [80,  '#'],
+	    [120, '&'],
+	    [160, '8'],
+	    [200, '0'],
+	    [240, 'X'],
+	    [280, 'Y'],
+	    [320, 'x'],
+	    [360, 'v'],
+	    [400, 'c'],
+	    [440, 'r'],
+	    [480, '/'],
+	    [520, '+'],
+	    [560, ';'],
+	    [600, ':'],
+	    [640, '"'],
+	    [680, '.'],
+	    [720, '`'],
+	    [760, ' ']
 	];
-    }
-
-    printMappings() {
-	var output = '';
-	var mappings = this.getAsciiMapping(false);
-	for (var i = 0; i < mappings.length; i++) {
-	    output += mappings[i][1];
-	}
-	output += '\n';
-
-	mappings = this.getAsciiMapping(true);
-	for (var i = 0; i < mappings.length; i++) {
-	    output += mappings[i][1];
-	}
-
-	console.log(output);
     }
 }
 
