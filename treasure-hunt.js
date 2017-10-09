@@ -328,7 +328,7 @@ class TreasureHuntGame {
     }
 
     drawHelp() {
-	var output = 'Instructions: Use Chrome (other browsers ot supported)\n';
+	var output = 'Instructions: Use Chrome (other browsers not supported)\n';
 	output = output + 'Click anywhere on the web page itself\n\n';
 	output = output + 'Get the "' + globalOptions['playerChar'] + '" over to the money sign!\n'; 
 	output = output + '| Character | Control   |\n';
