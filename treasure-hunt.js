@@ -39,7 +39,10 @@ var map1 = [
 ];
 
 var globalOptions = {
-    'playInBrowser': false
+    'playInBrowser': true,
+    'drawFPS': 2,
+    'updateFPS': 10,
+    'playerChar': '#'
 };
 
 function run() {  
@@ -169,8 +172,8 @@ class Game {
 	this.threadUpdate = new Thread(updateFunction);
 	this.threadDraw = new Thread(drawFunction);
 
-	this.threadUpdate.start(10); //update X times per second
-	this.threadDraw.start(6); //draw X times per second
+	this.threadUpdate.start(globalOptions['updateFPS']); //update X times per second
+	this.threadDraw.start(globalOptions['drawFPS']); //draw X times per second
 
 	var that = this;
 
@@ -210,14 +213,31 @@ class TreasureHuntGame {
 	// set up basic game objects
 	this.game = new Game();
 	this.map = new Map(map1);
-	this.character = new Character(20, 10, '!');
 
-	// put the goal in a random spot on the map 
-	// (there's a small chance it will be on the player but I don't care right now)
-	var goalX = randomNumber(this.map.width - 1);
-	var goalY = randomNumber(this.map.height - 1);
+	var getRandomMapPlacement = function(map) {
+	    var x = randomNumber(map.width - 1);
+	    var y = randomNumber(map.height - 1);
 
-	this.goal = new Character(goalX, goalY, '$');
+	    // don't let them overlap
+	    while (map.getIsWall(x, y)) {
+		x = randomNumber(map.width - 1);
+		y = randomNumber(map.height - 1);
+	    }
+
+	    return { 'x': x, 'y': y };
+	}
+
+	var charPlacement = getRandomMapPlacement(this.map);
+	this.character = new Character(charPlacement.x, charPlacement.y, globalOptions['playerChar']);
+
+	var goalPlacement = getRandomMapPlacement(this.map);
+
+	// don't let them overlap
+	while (goalPlacement.x == this.character.x && goalPlacement.y == this.character.y) {
+	    goalPlacement = getRandomMapPlacement(this.map);
+	}
+
+	this.goal = new Character(goalPlacement.x, goalPlacement.y, '$');
 	this.renderer = new Renderer();
 	this.animationHandler = new AnimationHandler(this.renderer);
 
@@ -233,10 +253,12 @@ class TreasureHuntGame {
 	var lastExplosionTime = Date.now();
 	var lastBlinkTime = Date.now();
 
+	this.mapCharacters = this.map.getMapCharacters();
+
 	// add game objects to renderer
 	this.renderer.addCharacter(this.character);
 	this.renderer.addCharacter(this.goal);
-	this.renderer.addCharacterList(this.map.getMapCharacters());
+	this.renderer.addCharacterList(this.mapCharacters);
 
 	// first draw of render
 	this.renderer.render(this.map);
@@ -276,7 +298,7 @@ class TreasureHuntGame {
 		    process.exit();
 		} else if (!that.isWinning) {	
 		    // update character movement
-		    that.character.move(gameCommand, that.map.width, that.map.height);
+		    that.character.move(gameCommand, that.map.width, that.map.height, that.map);
 
 		    checkWinCondition();
 		}
@@ -306,13 +328,16 @@ class TreasureHuntGame {
     }
 
     drawHelp() {
-	console.log('Get the "!" over to the money sign!');
-	console.log('| Character | Control   | ');
-	console.log('| w         | Up        |');
-	console.log('| d         | Right     |');
-	console.log('| s         | Down      |');
-	console.log('| a         | Left      |');
-	console.log('| c         | Quit      |');
+	var output = 'Instructions: Use Chrome (other browsers ot supported)\n';
+	output = output + 'Click anywhere on the web page itself\n\n';
+	output = output + 'Get the "' + globalOptions['playerChar'] + '" over to the money sign!\n'; 
+	output = output + '| Character | Control   |\n';
+	output = output + '| w         | Up        |\n';
+	output = output + '| d         | Right     |\n';
+	output = output + '| s         | Down      |\n';
+	output = output + '| a         | Left      |\n';
+	output = output + '| c         | Quit      |\n';
+	console.log(output);
     }
 }
 
@@ -324,18 +349,26 @@ class Map {
     }
 
     getMapCharacters() {
-	var characters = [];
+	if (this.characters) {
+	    return this.characters;
+	}
+
+        this.characters = [];
 	for (var row = 0; row < this.height; row++) {
 	    var rowStr = this.mapData[row];    
 	    for (var col = 0; col < rowStr.length; col++) {
 		var thisChar = rowStr.charAt(col);
 		if (thisChar != ' ') {
-		    characters.push(new Character(col, row, thisChar));
+		    this.characters.push(new Character(col, row, thisChar));
 		}
 	    }
 	}
 
-	return characters;
+	return this.characters;
+    }
+
+    getIsWall(x, y) {
+	return this.getMapCharacters().filter(ch => ch.x == x && ch.y == y).length > 0;
     }
 }
 
@@ -345,22 +378,22 @@ class Renderer {
     }
 
     clearScreen() {
-	// escape sequence required to clear the screen and set cursor at 0,0
-	console.log("\u001b[2J\u001b[0;0H");
+	// clear the screen and set cursor at 0,0
+	console.clear();
+	//console.log("\u001b[2J\u001b[0;0H");
 	//process.stdout.write("\u001b[2J\u001b[0;0H");
     }
 
     render(map) {
+	var output = '';
 	for (var row = 0; row < map.height; row++) {
-	    var output = '';
-
 	    // find all characters that need to be drawn in this row
 	    var charactersInRow = this.getCharactersInRow(row);;
 	    
 	    // if there aren't any, draw a blank line
 	    if (charactersInRow.length <= 0) {
 	   	for (var col = 0; col < map.width; col++) {
-		    output = output + ' ';
+		    output = output + '\xa0'; // non-breaking space
 		}
 	    } else {
 		// else there must be characters here, sort them first...
@@ -370,8 +403,10 @@ class Renderer {
 		output = output + this.getOutputLine(charactersInRow, map);
 	    }
 
-	    console.log(output);
+	    output = output + '\n';
 	}
+
+	console.log(output);
     }
 
     addCharacter(character) {
@@ -442,24 +477,32 @@ class Character {
 	this.symbol = symbol;
     }
     
-    move(direction, maxX, maxY) {
+    move(direction, maxX, maxY, map) {
+	var intendedX = this.x;
+	var intendedY = this.y;
+
 	switch(direction) {
 	case 'LEFT': 
-	    this.x--; break;
+	    intendedX--; break;
 	    
 	case 'RIGHT':
-	    this.x++; break;
+	    intendedX++; break;
 	    
 	case 'UP':
-	    this.y--; break;
+	    intendedY--; break;
 	    
 	case 'DOWN':
-	    this.y++; break;
+	    intendedY++; break;
 	}
 
 	// restrict to bounds provided
-	this.x = Math.min(maxX - 1, Math.max(0, this.x));
-	this.y = Math.min(maxY - 1, Math.max(0, this.y));
+	intendedX = Math.min(maxX - 1, Math.max(0, intendedX));
+	intendedY = Math.min(maxY - 1, Math.max(0, intendedY));
+
+	if (!map.getIsWall(intendedX, intendedY)) {
+	    this.x = intendedX;
+	    this.y = intendedY;
+	}
     }
 }
 
@@ -495,21 +538,25 @@ class KeyMap {
 	switch(key) {
 	case 'a': 
 	case "65":
+	case "37":
 	    return 'LEFT';
 	    
 	case 'e': 
 	case 'd': 
 	case "68":
+	case "39":
 	    return 'RIGHT';
 	    
 	case ',': 
 	case 'w': 
 	case "87":
+	case "38":
 	    return 'UP';
 	    
 	case 'o':
 	case 's':
 	case "83":
+	case "40":
 	    return 'DOWN';
 
 	case 'c':
