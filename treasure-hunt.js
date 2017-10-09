@@ -1,20 +1,3 @@
-
-
-/*
-  HOW TO PLAY
-
-  After running, make sure to click in the console window, then...
-
-  Use w, a, s, d to move your character towards the $ sign
-
-  | Character | Control   | 
-  | 'w'       | UP        |
-  | 'd'       | RIGHT     |
-  | 's'       | DOWN      |
-  | 'a'       | LEFT      |
-  | 'c'       | Quit      |
-*/
-
 "use strict";
 
 var map1 = [
@@ -38,12 +21,20 @@ var map1 = [
     "|------------------------------------------------------------|"
 ];
 
+// Options that control the flow of the game
 var globalOptions = {
     'playInBrowser': true,
-    'drawFPS': 2,
+    'drawFPS': 5,
     'updateFPS': 10,
-    'playerChar': '#'
+    'viewportWidth': 30,
+    'viewportHeight': 10
 };
+
+// some basic constants
+var FACING_UP = 'U';
+var FACING_LEFT = 'L';
+var FACING_DOWN = 'D';
+var FACING_RIGHT = 'R';
 
 function run() {  
     var thGame = new TreasureHuntGame();
@@ -227,8 +218,14 @@ class TreasureHuntGame {
 	    return { 'x': x, 'y': y };
 	}
 
-	var charPlacement = getRandomMapPlacement(this.map);
-	this.character = new Character(charPlacement.x, charPlacement.y, globalOptions['playerChar']);
+	var characterMap = {};
+	characterMap[FACING_UP] = '\u25B3';
+	characterMap[FACING_DOWN] = '\u25BD';
+	characterMap[FACING_RIGHT] = '\u25B7';
+	characterMap[FACING_LEFT] = '\u25C1';
+
+	var charPlacement = { 'x': 1, 'y': 1 };
+	this.character = new Character(charPlacement.x, charPlacement.y, null, characterMap);
 
 	var goalPlacement = getRandomMapPlacement(this.map);
 
@@ -238,8 +235,10 @@ class TreasureHuntGame {
 	}
 
 	this.goal = new Character(goalPlacement.x, goalPlacement.y, '$');
-	this.renderer = new Renderer();
+	this.renderer = new Renderer(globalOptions['viewportWidth'], globalOptions['viewportHeight']);
 	this.animationHandler = new AnimationHandler(this.renderer);
+
+	this.renderer.centerViewportOn(this.character, this.map);
 
 	// this should probably turn into a state machine
 	this.isWinning = false;
@@ -299,6 +298,7 @@ class TreasureHuntGame {
 		} else if (!that.isWinning) {	
 		    // update character movement
 		    that.character.move(gameCommand, that.map.width, that.map.height, that.map);
+		    that.renderer.centerViewportOn(that.character, that.map);
 
 		    checkWinCondition();
 		}
@@ -320,17 +320,17 @@ class TreasureHuntGame {
 
 	var draw = function() {
 	    that.renderer.clearScreen();
-	    that.drawHelp();
+	    that.drawHelp(that.character.symbol);
 	    that.renderer.render(that.map);
 	}
 
 	this.game.initialize(update, draw);
     }
 
-    drawHelp() {
+    drawHelp(characterSymbol) {
 	var output = 'Instructions: Use Chrome (other browsers not supported)\n';
 	output = output + 'Click anywhere on the web page itself\n\n';
-	output = output + 'Get the "' + globalOptions['playerChar'] + '" over to the money sign!\n'; 
+	output = output + 'Use your "' + characterSymbol + '" character and go find the treasure!\n'; 
 	output = output + '| Character | Control   |\n';
 	output = output + '| w         | Up        |\n';
 	output = output + '| d         | Right     |\n';
@@ -373,8 +373,9 @@ class Map {
 }
 
 class Renderer {
-    constructor() {
+    constructor(viewW, viewH) {
     	this.characters = [];
+	this.viewport = { 'x': 0, 'y': 0, 'width': viewW, 'height': viewH }
     }
 
     clearScreen() {
@@ -386,9 +387,9 @@ class Renderer {
 
     render(map) {
 	var output = '';
-	for (var row = 0; row < map.height; row++) {
+	for (var row = this.viewport.y; row < this.viewport.y + this.viewport.height; row++) {
 	    // find all characters that need to be drawn in this row
-	    var charactersInRow = this.getCharactersInRow(row);;
+	    var charactersInRow = this.getCharactersInRow(row);
 	    
 	    // if there aren't any, draw a blank line
 	    if (charactersInRow.length <= 0) {
@@ -443,20 +444,18 @@ class Renderer {
     }
 
     getCharactersInRow(row) {
-	var charactersInRow = [];
-	for (var i = 0; i < this.characters.length; i++) {
-	    if (this.characters[i].y == row) {
-		charactersInRow.push(this.characters[i]);
-	    }
-	}
-
+	var that = this;
+	var charactersInRow = this.characters.filter(c => 
+						     c.y == row && 
+						     c.x >= that.viewport.x && 
+						     c.x <= that.viewport.x + that.viewport.width);
 	return charactersInRow;
     }
 
     getOutputLine(charactersInRow, map) {
 	// ...then draw them all. Put it all in one string for quick render.
-	var output = '';        
-	for (var col = 0; col < map.width; col++) {
+	var output = '';
+	for (var col = this.viewport.x; col < this.viewport.x + this.viewport.width; col++) {
 	    var characterInPosition = this.findCharacterAtX(charactersInRow, col);
 
 	    if (characterInPosition != null) {
@@ -468,13 +467,24 @@ class Renderer {
 
 	return output;
     }
+
+    centerViewportOn(character, map) {
+	this.viewport.x = Math.min(map.width - this.viewport.width, Math.max(0, character.x - (this.viewport.width / 2)));
+	this.viewport.y = Math.min(map.height - this.viewport.height, Math.max(0, character.y - (this.viewport.height / 2)));
+    }
 }
 
 class Character {
-    constructor(initialX, initialY, symbol) {
+    constructor(initialX, initialY, symbol, symbolFacingMap) {
 	this.x = initialX;
 	this.y = initialY;
+	this.facing = FACING_DOWN;
 	this.symbol = symbol;
+	this.symbolFacingMap = symbolFacingMap;
+
+	if (this.symbolFacingMap) {
+	    this.symbol = this.symbolFacingMap[this.facing];
+	}
     }
     
     move(direction, maxX, maxY, map) {
@@ -483,16 +493,24 @@ class Character {
 
 	switch(direction) {
 	case 'LEFT': 
-	    intendedX--; break;
+	    intendedX--; 
+	    this.facing = FACING_LEFT;
+	    break;
 	    
 	case 'RIGHT':
-	    intendedX++; break;
+	    intendedX++; 
+	    this.facing = FACING_RIGHT;
+	    break;
 	    
 	case 'UP':
-	    intendedY--; break;
+	    intendedY--; 
+	    this.facing = FACING_UP;
+	    break;
 	    
 	case 'DOWN':
-	    intendedY++; break;
+	    intendedY++; 
+	    this.facing = FACING_DOWN;
+	    break;
 	}
 
 	// restrict to bounds provided
@@ -502,6 +520,11 @@ class Character {
 	if (!map.getIsWall(intendedX, intendedY)) {
 	    this.x = intendedX;
 	    this.y = intendedY;
+	}
+	
+	// make sure we point the proper direction
+	if (this.symbolFacingMap) {
+	    this.symbol = this.symbolFacingMap[this.facing];
 	}
     }
 }
