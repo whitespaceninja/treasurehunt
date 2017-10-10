@@ -24,7 +24,7 @@ var map1 = [
 // Options that control the flow of the game
 var globalOptions = {
     'playInBrowser': true,
-    'drawFPS': 4,
+    'drawFPS': 5,
     'updateFPS': 10,
     'viewportWidth': 30,
     'viewportHeight': 10,
@@ -82,6 +82,7 @@ class TextAnimaton extends Animation {
                 renderer.addCharacter(new Character(this.centerX - x_offset, this.centerY, this.text.charAt(i)));
             }
         }
+        renderer.setDirty();
     }
 
     isExpired() {
@@ -127,6 +128,7 @@ class WinAnimation extends Animation {
                 renderer.addCharacter(character);
             }
         }
+        renderer.setDirty();
     }
 
     isExpired() {
@@ -214,50 +216,10 @@ class TreasureHuntGame {
         this.game = new Game();
         this.map = new Map(map1);
 
-        var getRandomMapPlacement = function(character, map) {
-            var x = randomNumber(map.width - 1);
-            var y = randomNumber(map.height - 1);
 
-            // don't let them overlap
-            while (map.getIsWall(x, y) || (character.x == x && character.y == y)) {
-                x = randomNumber(map.width - 1);
-                y = randomNumber(map.height - 1);
-            }
-
-            return { 'x': x, 'y': y };
-        }
-
-        var createPlayer = function() {
-            // the ascii characters we draw in each position
-            var characterAnimation = new CharacterAnimation(FACING_DOWN, '\u25C1', '\u25B3', '\u25B7', '\u25BD');
-
-            // start at the top left of the map
-            return new MovableCharacter(1, 1, characterAnimation);
-        }
-
-        var createGoal = function(character, map) {
-            var goalPlacement = getRandomMapPlacement(character, map);
-            return new Character(goalPlacement.x, goalPlacement.y, '$');
-        }
-
-        var createEnemy = function(character, map) {
-            // create enemies
-            var enemyAnimation = new CharacterAnimation(FACING_DOWN, '\u263F', '\u263F', '\u263F', '\u263F');
-            var enemyPlacement = getRandomMapPlacement(character, map);
-            return new EnemyCharacter(enemyPlacement.x, enemyPlacement.y, enemyAnimation, map);
-        }
-
-        this.character = createPlayer();
-        this.goal = createGoal(this.character, this.map);
-        this.enemies = [];
-        for (var i = 0; i < globalOptions['numEnemies']; i++) {
-            this.enemies.push(createEnemy(this.character, this.map));
-        }
-
+        this.character = this.createPlayer();
         this.renderer = new Renderer(globalOptions['viewportWidth'], globalOptions['viewportHeight']);
         this.animationHandler = new AnimationHandler(this.renderer);
-
-        this.renderer.centerViewportOn(this.character, this.map);
 
         this.STATE_RUNNING = 0;
         this.STATE_WINNNING = 1;
@@ -267,6 +229,40 @@ class TreasureHuntGame {
         this.state = this.STATE_RUNNING;
     }
 
+    getRandomMapPlacement(character, map) {
+        var x = randomNumber(map.width - 1);
+        var y = randomNumber(map.height - 1);
+
+        // don't let them overlap
+        while (map.getIsWall(x, y) || (character.x == x && character.y == y)) {
+            x = randomNumber(map.width - 1);
+            y = randomNumber(map.height - 1);
+        }
+
+        return { 'x': x, 'y': y };
+    }
+
+    createPlayer() {
+        // the ascii characters we draw in each position
+        var characterAnimation = new CharacterAnimation(FACING_DOWN, '\u25C1', '\u25B3', '\u25B7', '\u25BD');
+        
+        // start at the top left of the map
+        return new MovableCharacter(1, 1, characterAnimation);
+    }
+
+    createGoal(character, map) {
+        var goalPlacement = this.getRandomMapPlacement(character, map);
+        return new Character(goalPlacement.x, goalPlacement.y, '$');
+    }
+
+    createEnemy(character, map) {
+        // create enemies
+        var enemyAnimation = new CharacterAnimation(FACING_DOWN, '\u263F', '\u263F', '\u263F', '\u263F');
+        var enemyPlacement = this.getRandomMapPlacement(character, map);
+        return new EnemyCharacter(enemyPlacement.x, enemyPlacement.y, enemyAnimation, map);
+    }
+
+
     initialize() {
         var that = this;
 
@@ -275,13 +271,31 @@ class TreasureHuntGame {
         var lastExplosionTime = Date.now();
         var lastBlinkTime = Date.now();
 
+        var onAnimation = function(character) {
+            if (that.renderer.isOnScreen(character)) {
+                that.renderer.setDirty();
+            }
+        }
+
+        this.goal = this.createGoal(this.character, this.map);
+        this.enemies = [];
+        for (var i = 0; i < globalOptions['numEnemies']; i++) {
+            var enemy = this.createEnemy(this.character, this.map);
+            enemy.addAnimationListener(onAnimation);
+            this.enemies.push(enemy);
+        }
+
         this.mapCharacters = this.map.getMapCharacters();
 
         // add game objects to renderer
+        this.character.addAnimationListener(onAnimation);
         this.renderer.addCharacter(this.character);
         this.enemies.map(x => that.renderer.addCharacter(x));
         this.renderer.addCharacter(this.goal);
         this.renderer.addCharacterList(this.mapCharacters);
+        
+        // center on the character
+        this.renderer.centerViewportOn(this.character, this.map);
 
         // first draw of render
         this.renderer.render(this.map);
@@ -354,6 +368,11 @@ class TreasureHuntGame {
         }
 
         var draw = function() {
+            if (!that.renderer.dirty) {
+                return;
+            }
+            that.renderer.dirty = false;
+
             that.renderer.clearScreen();
             that.drawHelp(that.character.getSymbol());
             that.renderer.render(that.map);
@@ -412,6 +431,11 @@ class Renderer {
     constructor(viewW, viewH) {
         this.characters = [];
         this.viewport = { 'x': 0, 'y': 0, 'width': viewW, 'height': viewH }
+        this.dirty = true;
+    }
+
+    setDirty() {
+        this.dirty = true;
     }
 
     clearScreen() {
@@ -419,6 +443,15 @@ class Renderer {
         console.clear();
         //console.log("\u001b[2J\u001b[0;0H");
         //process.stdout.write("\u001b[2J\u001b[0;0H");
+    }
+
+    isOnScreen(character) {
+        var onscreen = 
+            character.x >= this.viewport.x &&
+            character.x < this.viewport.x + this.viewport.width &&
+            character.y >= this.viewport.y &&
+            character.y < this.viewport.y + this.viewport.height;
+        return onscreen;
     }
 
     render(map) {
@@ -512,7 +545,12 @@ class CharacterAnimation {
     }
 
     setFacing(newFacing) {
-        this.facing = newFacing;
+        if (this.facing != newFacing) {
+            var diffSymbol = this.charMap[this.facing] != this.charMap[newFacing];
+            this.facing = newFacing;
+            return diffSymbol;
+        }
+        return false;
     }
 }
 
@@ -521,10 +559,24 @@ class Character {
         this.x = initialX;
         this.y = initialY;
         this.symbol = symbol;
+        this.animationListeners = [];
     }
 
     getSymbol() {
         return this.symbol;
+    }
+
+    addAnimationListener(fnOnAnimate) {
+        this.animationListeners.push(fnOnAnimate);
+    }
+
+    clearAnimationListeners() {
+        this.animationListeners = [];
+    }
+
+    onAnimated() {
+        var that = this;
+        this.animationListeners.map(x => x(that));
     }
 }
 
@@ -537,26 +589,27 @@ class MovableCharacter extends Character {
     move(direction, maxX, maxY, map) {
         var intendedX = this.x;
         var intendedY = this.y;
+        var dirty = false;
 
         switch(direction) {
             case 'LEFT': 
                 intendedX--; 
-                this.characterAnimation.setFacing(FACING_LEFT);
+                dirty = this.characterAnimation.setFacing(FACING_LEFT);
                 break;
 
             case 'RIGHT':
                 intendedX++; 
-                this.characterAnimation.setFacing(FACING_RIGHT);
+                dirty = this.characterAnimation.setFacing(FACING_RIGHT);
                 break;
 
             case 'UP':
                 intendedY--; 
-                this.characterAnimation.setFacing(FACING_UP);
+                dirty = this.characterAnimation.setFacing(FACING_UP);
                 break;
 
             case 'DOWN':
                 intendedY++; 
-                this.characterAnimation.setFacing(FACING_DOWN);
+                dirty = this.characterAnimation.setFacing(FACING_DOWN);
                 break;
         }
 
@@ -567,6 +620,11 @@ class MovableCharacter extends Character {
         if (!map.getIsWall(intendedX, intendedY)) {
             this.x = intendedX;
             this.y = intendedY;
+            dirty = true;
+        }
+
+        if (dirty) {
+            this.onAnimated();
         }
     }
 
