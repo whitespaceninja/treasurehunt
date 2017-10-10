@@ -56,14 +56,15 @@ class Animation {
     isExpired() { return true; }
 }
 
-class WinTextAnimaton extends Animation {
-    constructor(centerX, centerY) {
+class TextAnimaton extends Animation {
+    constructor(centerX, centerY, text) {
         super();
         this.centerX = centerX;
         this.centerY = centerY;
         this.frameSpeed = 600;
         this.lastFrame = Date.now();
         this.isVisible = false;
+        this.text = text;
     }
 
     update(timeNow) {
@@ -76,9 +77,10 @@ class WinTextAnimaton extends Animation {
     fillRenderer(renderer) {
         if (this.isVisible) {
             // add WIN in the center of the explosion.
-            renderer.addCharacter(new Character(this.centerX - 1, this.centerY, 'W'));
-            renderer.addCharacter(new Character(this.centerX - 0, this.centerY, 'I'));
-            renderer.addCharacter(new Character(this.centerX + 1, this.centerY, 'N'));  
+            for (var i = 0; i < this.text.length; i++) {
+                var x_offset = Math.floor(this.text.length / 2) - i;
+                renderer.addCharacter(new Character(this.centerX - x_offset, this.centerY, this.text.charAt(i)));
+            }
         }
     }
 
@@ -240,7 +242,7 @@ class TreasureHuntGame {
 
         var createEnemy = function(character, map) {
             // create enemies
-            var enemyAnimation = new CharacterAnimation(FACING_DOWN, '\u2646', '\u2646', '\u2646', '\u2646');
+            var enemyAnimation = new CharacterAnimation(FACING_DOWN, '\u263F', '\u263F', '\u263F', '\u263F');
             var enemyPlacement = getRandomMapPlacement(character, map);
             return new EnemyCharacter(enemyPlacement.x, enemyPlacement.y, enemyAnimation, map);
         }
@@ -257,8 +259,12 @@ class TreasureHuntGame {
 
         this.renderer.centerViewportOn(this.character, this.map);
 
+        this.STATE_RUNNING = 0;
+        this.STATE_WINNNING = 1;
+        this.STATE_DEAD = 2;
+
         // this should probably turn into a state machine
-        this.isWinning = false;
+        this.state = this.STATE_RUNNING;
     }
 
     initialize() {
@@ -282,25 +288,31 @@ class TreasureHuntGame {
 
         // this is a blocking animation that 'explodes' the 
         //...goal into an explosion
-        var spawnExplosions = function(now) {
+        var spawnExplosions = function(now, centeredCharacter) {
             // spawn a new animation based on EXPLOSION_SPEED
             if (now - lastExplosionTime > EXPLOSION_SPEED) {
-                that.animationHandler.addAnimation(new WinAnimation(that.goal.x, that.goal.y, that.map.width, that.map.height));
+                that.animationHandler.addAnimation(new WinAnimation(centeredCharacter.x, centeredCharacter.y, that.map.width, that.map.height));
                 lastExplosionTime = now;
             }
         };
 
+        var checkDeadCondition = function() {
+            var enemiesTouched = that.enemies.filter(e => e.x == that.character.x && e.y == that.character.y);
+            if (enemiesTouched.length > 0) {
+                var enemy = enemiesTouched[0];
+                that.state = that.STATE_DEAD;
+
+                that.animationHandler.addAnimation(new WinAnimation(enemy.x, enemy.y, that.map.width, that.map.height));
+                that.animationHandler.addAnimation(new TextAnimaton(enemy.x, enemy.y, "DEAD"));
+            }
+        }
+
         var checkWinCondition = function() {
             if (that.character.x == that.goal.x && that.character.y == that.goal.y) {
-                that.isWinning = true;
+                that.state = that.STATE_WINNING;
 
-                that.animationHandler.addAnimation(
-                    new WinAnimation(that.goal.x, that.goal.y, that.map.width, that.map.height)
-                );
-
-                that.animationHandler.addAnimation(
-                    new WinTextAnimaton(that.goal.x, that.goal.y)
-                );
+                that.animationHandler.addAnimation(new WinAnimation(that.goal.x, that.goal.y, that.map.width, that.map.height));
+                that.animationHandler.addAnimation(new TextAnimaton(that.goal.x, that.goal.y, "WIN"));
             }
         }
 
@@ -313,21 +325,26 @@ class TreasureHuntGame {
 
                 if (gameCommand == 'QUIT') {
                     process.exit();
-                } else if (!that.isWinning) {   
+                } else if (that.state == that.STATE_RUNNING) {   
                     // update character movement
                     that.character.move(gameCommand, that.map.width, that.map.height, that.map);
                     that.renderer.centerViewportOn(that.character, that.map);
 
                     checkWinCondition();
+                    checkDeadCondition();
                 }
             }
 
-            if (that.isWinning) {
+            if (that.state == that.STATE_WINNING) {
                 // clear everything
                 that.renderer.removeAllCharacters();
                 
                 // win condition!
-                spawnExplosions(now);
+                spawnExplosions(now, that.character);
+            } else if (that.state == that.STATE_DEAD) {
+                that.renderer.removeAllCharacters();
+
+                spawnExplosions(now, that.character);
             }
 
             // this currently adds all the characters to the renderer so it should be 
@@ -348,7 +365,8 @@ class TreasureHuntGame {
     drawHelp(characterSymbol) {
         var output = 'Instructions: Use Chrome (other browsers not supported)\n';
         output = output + 'Click anywhere on the web page itself\n\n';
-        output = output + 'Use your "' + characterSymbol + '" character and go find the treasure!\n'; 
+        output = output + 'Use your "' + characterSymbol + '" character and go find the treasure ($)!\n'; 
+        output = output + 'but watch out for bad guys!\n'; 
         output = output + '| Character | Control   |\n';
         output = output + '| w         | Up        |\n';
         output = output + '| d         | Right     |\n';
