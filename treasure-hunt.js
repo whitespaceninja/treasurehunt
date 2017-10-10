@@ -447,10 +447,10 @@ class Renderer {
 
     isOnScreen(character) {
         var onscreen = 
-            character.x >= this.viewport.x &&
-            character.x < this.viewport.x + this.viewport.width &&
-            character.y >= this.viewport.y &&
-            character.y < this.viewport.y + this.viewport.height;
+            character.x >= this.viewport.x - 1 &&
+            character.x < this.viewport.x + this.viewport.width + 1 &&
+            character.y >= this.viewport.y - 1 &&
+            character.y < this.viewport.y + this.viewport.height + 1;
         return onscreen;
     }
 
@@ -592,25 +592,29 @@ class MovableCharacter extends Character {
         var dirty = false;
 
         switch(direction) {
-            case 'LEFT': 
-                intendedX--; 
-                dirty = this.characterAnimation.setFacing(FACING_LEFT);
-                break;
+        case 'LEFT': 
+            intendedX--; 
+            dirty = this.characterAnimation.setFacing(FACING_LEFT);
+            break;
 
-            case 'RIGHT':
-                intendedX++; 
-                dirty = this.characterAnimation.setFacing(FACING_RIGHT);
-                break;
+        case 'RIGHT':
+            intendedX++; 
+            dirty = this.characterAnimation.setFacing(FACING_RIGHT);
+            break;
 
-            case 'UP':
-                intendedY--; 
-                dirty = this.characterAnimation.setFacing(FACING_UP);
-                break;
+        case 'UP':
+            intendedY--; 
+            dirty = this.characterAnimation.setFacing(FACING_UP);
+            break;
 
-            case 'DOWN':
-                intendedY++; 
-                dirty = this.characterAnimation.setFacing(FACING_DOWN);
-                break;
+        case 'DOWN':
+            intendedY++; 
+            dirty = this.characterAnimation.setFacing(FACING_DOWN);
+            break;
+
+        default:
+            // must be some sort of bogus movement. don't handle.
+            return
         }
 
         // restrict to bounds provided
@@ -620,6 +624,7 @@ class MovableCharacter extends Character {
         if (!map.getIsWall(intendedX, intendedY)) {
             this.x = intendedX;
             this.y = intendedY;
+            // always trigger dirty when moving
             dirty = true;
         }
 
