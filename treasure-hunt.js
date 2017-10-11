@@ -3,20 +3,20 @@
 var map1 = [
 "|------------------------------------------------------------------------------------------------------------------------|",
 "|  |        |   |                             |                |        |   |                             |              |",
-"|  |   |----|   |-----|  -  |-------------|   |   |-------|    |   |----|   |-----|  -  |-------------|   |   |-------|  |",
+"|  |   |----|   |-----|     |-------------|   |   |-------|    |   |----|   |-----|     |-------------|   |   |-------|  |",
 "|  |        |   |        |  |                 |           |    |        |   |        |  |                 |           |  |",
-"|  |---|    |   -    |   |  |   |-------------|           |    |---|    |   -    |   |  |   |-------------|           |  |",
+"|  |---|    |        |   |  |   |-------------|           |    |---|    |   -    |   |  |   |-------------|           |  |",
 "|           |        |   |  |                 |           |             |        |   |  |                 |           |  |",
-"|                    |   -  |            -                |                      |   -  |            -                |  |",
-"|                    |      -            |                |                      |      -            |                |  |",
+"|                    |      |                             |                      |      |                             |  |",
+"|                    |                   |                |                      |                   |                |  |",
 "|      |-------|     |                   |                |        |-------|     |                   |                |  |",
-"|                    |   -  |------------|                |                      |   -  |------------|                |  |",
+"|                    |      |------------|                |                      |      |------------|                |  |",
 "|           |--------|   |  |                             |             |--------|   |  |                             |  |",
 "|                        |  |                  |----------|                          |  |                  |----------|  |",
 "|                        |  |                                                        |  |                                |",
-"|   |-------|            -  -                                   |-------|            -  -                                |",
-"|           |                    |----------------|     -               |                    |----------------|     -    |",
-"|           |               -                           |               |               -                           |    |",
+"|   |-------|                                                   |-------|                                                |",
+"|           |                    |----------------|                     |                    |----------------|          |",
+"|           |                                           |               |                                           |    |",
 "|           |               |                           |               |               |                           |    |",
 "|------------------------------------------------------------------------------------------------------------------------|"
 ];
@@ -45,6 +45,26 @@ function run() {
 function randomNumber(max) {
     return Math.floor((Math.random() * max) + 1);
 }
+
+class GameObjects {
+    constructor() {
+        this.objects = [];
+    }
+
+    addObject(obj) {
+        this.objects.push(obj);
+    }
+
+    removeObject(obj) {
+        this.objects = this.objects.filter(x => x !== obj);
+    }
+
+    removeAllObjects() {
+        this.objects = [];
+    }
+}
+
+var gameObjects = new GameObjects();
 
 class Animation {
     constructor() { }
@@ -79,7 +99,7 @@ class TextAnimaton extends Animation {
             // add WIN in the center of the explosion.
             for (var i = 0; i < this.text.length; i++) {
                 var x_offset = Math.floor(this.text.length / 2) - i;
-                renderer.addCharacter(new Character(this.centerX - x_offset, this.centerY, this.text.charAt(i)));
+                gameObjects.addObject(new Character(this.centerX - x_offset, this.centerY, this.text.charAt(i)));
             }
         }
         renderer.setDirty();
@@ -125,17 +145,18 @@ class WinAnimation extends Animation {
                 
                 var x = this.centerX + ((this.radius - difference) * multiplier);
                 var character = new Character(x, y, '*');
-                renderer.addCharacter(character);
+                gameObjects.addObject(character);
             }
         }
         renderer.setDirty();
     }
 
     isExpired() {
-        return  this.centerX - (this.radius * 2) < 0 &&
-        this.centerX + (this.radius * 2) > this.maxX &&
-        this.centerY - (this.radius * 2) < 0 &&
-        this.centerY + (this.radius * 2) > this.maxY;
+        return  
+            this.centerX - (this.radius * 2) < 0 &&
+            this.centerX + (this.radius * 2) > this.maxX &&
+            this.centerY - (this.radius * 2) < 0 &&
+            this.centerY + (this.radius * 2) > this.maxY;
     }
 }
 
@@ -216,7 +237,6 @@ class TreasureHuntGame {
         this.game = new Game();
         this.map = new Map(map1);
 
-
         this.character = this.createPlayer();
         this.renderer = new Renderer(globalOptions['viewportWidth'], globalOptions['viewportHeight']);
         this.animationHandler = new AnimationHandler(this.renderer);
@@ -247,7 +267,7 @@ class TreasureHuntGame {
         var characterAnimation = new CharacterAnimation(FACING_DOWN, '\u25C1', '\u25B3', '\u25B7', '\u25BD');
         
         // start at the top left of the map
-        return new MovableCharacter(1, 1, characterAnimation);
+        return new PlayerCharacter(1, 1, characterAnimation);
     }
 
     createGoal(character, map) {
@@ -289,10 +309,12 @@ class TreasureHuntGame {
 
         // add game objects to renderer
         this.character.addAnimationListener(onAnimation);
-        this.renderer.addCharacter(this.character);
-        this.enemies.map(x => that.renderer.addCharacter(x));
-        this.renderer.addCharacter(this.goal);
-        this.renderer.addCharacterList(this.mapCharacters);
+        gameObjects.addObject(this.character);
+
+        this.enemies.map(x => gameObjects.addObject(x));
+        this.map.getMapCharacters().map(x => gameObjects.addObject(x));
+        gameObjects.addObject(this.goal);
+
         
         // center on the character
         this.renderer.centerViewportOn(this.character, this.map);
@@ -341,23 +363,22 @@ class TreasureHuntGame {
                     process.exit();
                 } else if (that.state == that.STATE_RUNNING) {   
                     // update character movement
-                    that.character.move(gameCommand, that.map.width, that.map.height, that.map);
+                    that.character.handleGameCommand(gameCommand, that.map.width, that.map.height, that.map);
                     that.renderer.centerViewportOn(that.character, that.map);
 
                     checkWinCondition();
                     checkDeadCondition();
                 }
             }
+            
+            gameObjects.objects.map(x => x.update(now));
 
-            if (that.state == that.STATE_WINNING) {
+            if (that.state == that.STATE_WINNING ||
+                that.state == that.STATE_DEAD) {
                 // clear everything
-                that.renderer.removeAllCharacters();
+                gameObjects.removeAllObjects();
                 
-                // win condition!
-                spawnExplosions(now, that.character);
-            } else if (that.state == that.STATE_DEAD) {
-                that.renderer.removeAllCharacters();
-
+                // win/die condition
                 spawnExplosions(now, that.character);
             }
 
@@ -501,7 +522,7 @@ class Renderer {
 
     getCharactersInRow(row) {
         var that = this;
-        return this.characters.filter(c => 
+        return gameObjects.objects.filter(c => 
            c.y == row && 
            c.x >= that.viewport.x && 
            c.x <= that.viewport.x + that.viewport.width);
@@ -578,6 +599,13 @@ class Character {
         var that = this;
         this.animationListeners.map(x => x(that));
     }
+
+    copyAnimationListener(character) {
+        this.animationListeners = this.animationListeners.concat(character.animationListeners);
+    }
+
+    update(timeNow) {
+    }
 }
 
 class MovableCharacter extends Character {
@@ -592,22 +620,22 @@ class MovableCharacter extends Character {
         var dirty = false;
 
         switch(direction) {
-        case 'LEFT': 
+        case FACING_LEFT: 
             intendedX--; 
             dirty = this.characterAnimation.setFacing(FACING_LEFT);
             break;
 
-        case 'RIGHT':
+        case FACING_RIGHT:
             intendedX++; 
             dirty = this.characterAnimation.setFacing(FACING_RIGHT);
             break;
 
-        case 'UP':
+        case FACING_UP:
             intendedY--; 
             dirty = this.characterAnimation.setFacing(FACING_UP);
             break;
 
-        case 'DOWN':
+        case FACING_DOWN:
             intendedY++; 
             dirty = this.characterAnimation.setFacing(FACING_DOWN);
             break;
@@ -638,39 +666,97 @@ class MovableCharacter extends Character {
     }
 }
 
+class PlayerCharacter extends MovableCharacter {
+    constructor(initialX, initialY, characterAnimation) {
+        super(initialX, initialY, characterAnimation);
+    }
+
+    handleGameCommand(command, maxX, maxY, map) {
+        if (command == 'FIRE') {
+            var characterAnimation = new CharacterAnimation(this.characterAnimation.facing, '-', '-', '-', '-');
+            var projectile = new ProjectileCharacter(this.x, this.y, this.characterAnimation.facing, 8, characterAnimation, map);
+            projectile.copyAnimationListener(this);
+            gameObjects.addObject(projectile);
+        } else {
+            this.move(command, maxX, maxY, map);
+        }
+    }
+
+}
+
 class EnemyCharacter extends MovableCharacter {
     constructor(initialX, initialY, characterAnimation, map) {
         super(initialX, initialY, characterAnimation);
 
         this.map = map;
 
-        var that = this;
-        var think = function() {
-            var random = randomNumber(4);
-            var direction = 'NONE';
-            switch (random) {
-            case 0: 
-                direction = 'LEFT';
-                break;
-            case 1:
-                direction = 'RIGHT';
-                break;
-            case 2:
-                direction = 'DOWN';
-                break;
-            case 3:
-                direction = 'UP';
-                break;
-            }
+        this.lastUpdate = 0;
+        this.thinkSpeed = 0.8;
+    }
 
-            that.move(direction, that.map.width, that.map.height, that.map);
+    think() {
+        var random = randomNumber(4);
+        var direction = 'NONE';
+        switch (random) {
+        case 0: 
+            direction = FACING_LEFT;
+            break;
+        case 1:
+            direction = FACING_RIGHT;
+            break;
+        case 2:
+            direction = FACING_DOWN;
+            break;
+        case 3:
+            direction = FACING_UP;
+            break;
         }
 
-        this.threadThink = new Thread(think);
+        this.move(direction, this.map.width, this.map.height, this.map);
+    }
 
-        this.threadThink.start(0.8); //update X times per second
+    update(timeNow) {
+        super.update(timeNow);
+
+        if (timeNow - this.lastUpdate > this.thinkSpeed) {
+            this.think();
+            this.lastUpdate = timeNow;
+        }
     }
 }
+
+class ProjectileCharacter extends MovableCharacter {
+    constructor(initialX, initialY, direction, maxDistance, characterAnimation, map) {
+        super(initialX, initialY, characterAnimation);
+
+        this.map = map;
+        this.direction = direction;
+        this.initialX = initialX;
+        this.initialY = initialY;
+        this.distanceTraveled = 0;
+        this.maxDistance = maxDistance;
+        this.travelSpeed = 4;
+        this.lastUpdate = 0;
+    }
+
+    think() {
+        this.move(this.direction, this.map.width, this.map.height, this.map);
+        this.distanceTraveled++;
+        if (this.distanceTraveled >= this.maxDistance) {
+            gameObjects.removeObject(this);
+        }
+    }
+
+    update(timeNow) {
+        super.update(timeNow);
+
+        if (timeNow - this.lastUpdate > this.travelSpeed) {
+            this.think();
+            this.lastUpdate = timeNow;
+        }
+    }
+}
+
 
 class Thread {
     constructor(functionPointer) {
@@ -702,32 +788,36 @@ class KeyMap {
 
     getGameCommand(key) {
         switch(key) {
-            case 'a': 
-            case "65":
-            case "37":
-            return 'LEFT';
+        case 'a': 
+        case "65":
+        case "37":
+            return FACING_LEFT;
 
-            case 'e': 
-            case 'd': 
-            case "68":
-            case "39":
-            return 'RIGHT';
+        case 'e': 
+        case 'd': 
+        case "68":
+        case "39":
+            return FACING_RIGHT;
 
-            case ',': 
-            case 'w': 
-            case "87":
-            case "38":
-            return 'UP';
+        case ',': 
+        case 'w': 
+        case "87":
+        case "38":
+            return FACING_UP;
 
-            case 'o':
-            case 's':
-            case "83":
-            case "40":
-            return 'DOWN';
+        case 'o':
+        case 's':
+        case "83":
+        case "40":
+            return FACING_DOWN;
 
-            case 'c':
-            case '67':
+        case 'c':
+        case '67':
             return 'QUIT';
+            
+        case 'f':
+        case '70':
+            return 'FIRE';
         }
     }
 }
