@@ -407,12 +407,13 @@ class TreasureHuntGame {
         output = output + 'Click anywhere on the web page itself\n\n';
         output = output + 'Use your "' + characterSymbol + '" character and go find the treasure ($)!\n'; 
         output = output + 'but watch out for bad guys!\n'; 
-        output = output + '| Character | Control   |\n';
-        output = output + '| w         | Up        |\n';
-        output = output + '| d         | Right     |\n';
-        output = output + '| s         | Down      |\n';
-        output = output + '| a         | Left      |\n';
-        output = output + '| c         | Quit      |\n';
+        output = output + '| Control  | Action |\n';
+        output = output + '| spacebar | FIRE!  |\n';
+        output = output + '| w        | Up     |\n';
+        output = output + '| d        | Right  |\n';
+        output = output + '| s        | Down   |\n';
+        output = output + '| a        | Left   |\n';
+        output = output + '| c        | Quit   |\n';
         console.log(output);
     }
 }
@@ -896,6 +897,7 @@ class KeyMap {
             
         case 'f':
         case '70':
+        case '32':
             return 'FIRE';
         }
     }
