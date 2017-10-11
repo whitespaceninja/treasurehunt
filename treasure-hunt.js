@@ -333,13 +333,11 @@ class TreasureHuntGame {
         };
 
         var checkDeadCondition = function() {
-            var enemiesTouched = that.enemies.filter(e => e.x == that.character.x && e.y == that.character.y);
-            if (enemiesTouched.length > 0) {
-                var enemy = enemiesTouched[0];
+            if (that.character.health <= 0) {
                 that.state = that.STATE_DEAD;
 
-                that.animationHandler.addAnimation(new WinAnimation(enemy.x, enemy.y, that.map.width, that.map.height));
-                that.animationHandler.addAnimation(new TextAnimaton(enemy.x, enemy.y, "DEAD"));
+                that.animationHandler.addAnimation(new WinAnimation(that.character.x, that.character.y, that.map.width, that.map.height));
+                that.animationHandler.addAnimation(new TextAnimaton(that.character.x, that.character.y, "DEAD"));
             }
         }
 
@@ -366,15 +364,17 @@ class TreasureHuntGame {
                     that.character.handleGameCommand(gameCommand, that.map.width, that.map.height, that.map);
                     that.renderer.centerViewportOn(that.character, that.map);
 
+
+
                     checkWinCondition();
                     checkDeadCondition();
                 }
             }
-            
-            gameObjects.objects.map(x => x.update(now));
 
-            if (that.state == that.STATE_WINNING ||
-                that.state == that.STATE_DEAD) {
+            if (that.state == that.STATE_RUNNING) {
+                gameObjects.objects.map(x => x.update(now));
+            } else if (that.state == that.STATE_WINNING ||
+                       that.state == that.STATE_DEAD) {
                 // clear everything
                 gameObjects.removeAllObjects();
                 
@@ -435,7 +435,7 @@ class Map {
             for (var col = 0; col < rowStr.length; col++) {
                 var thisChar = rowStr.charAt(col);
                 if (thisChar != ' ') {
-                    this.characters.push(new Character(col, row, thisChar));
+                    this.characters.push(new WallCharacter(col, row, thisChar));
                 }
             }
         }
@@ -491,7 +491,7 @@ class Renderer {
                 charactersInRow.sort(this.compareX);
                 
                 // ...then draw them all. Put it all in one string for quick render.
-                output = output + this.getOutputLine(charactersInRow, map);
+                output = output + this.getOutputLine(charactersInRow);
             }
 
             output = output + '\n';
@@ -528,7 +528,7 @@ class Renderer {
            c.x <= that.viewport.x + that.viewport.width);
     }
 
-    getOutputLine(charactersInRow, map) {
+    getOutputLine(charactersInRow) {
         // ...then draw them all. Put it all in one string for quick render.
         var output = '';
         for (var col = this.viewport.x; col < this.viewport.x + this.viewport.width; col++) {
@@ -608,13 +608,51 @@ class Character {
     }
 }
 
+class WallCharacter extends Character {
+    constructor(initialX, initialY, symbol) {
+        super(initialX, initialY, symbol);
+    }
+
+    collide(withObject) {
+        if (withObject instanceof ProjectileCharacter) {
+            gameObjects.removeObject(withObject);
+        }
+    }
+}
+
 class MovableCharacter extends Character {
     constructor(initialX, initialY, characterAnimation) {
         super(initialX, initialY, characterAnimation.getSymbol());
         this.characterAnimation = characterAnimation;
+        this.obeyWalls = true;
     }
 
-    move(direction, maxX, maxY, map) {
+    getPositionIfMove(direction) {
+        var intendedX = this.x;
+        var intendedY = this.y;
+
+        switch(direction) {
+        case FACING_LEFT: 
+            intendedX--; 
+            break;
+
+        case FACING_RIGHT:
+            intendedX++; 
+            break;
+
+        case FACING_UP:
+            intendedY--; 
+            break;
+
+        case FACING_DOWN:
+            intendedY++; 
+            break;
+        }
+
+        return { 'x': intendedX, 'y': intendedY };
+    }
+
+    move(direction, map) {
         var intendedX = this.x;
         var intendedY = this.y;
         var dirty = false;
@@ -645,11 +683,7 @@ class MovableCharacter extends Character {
             return
         }
 
-        // restrict to bounds provided
-        intendedX = Math.min(maxX - 1, Math.max(0, intendedX));
-        intendedY = Math.min(maxY - 1, Math.max(0, intendedY));
-
-        if (!map.getIsWall(intendedX, intendedY)) {
+        if (!(this.obeyWalls && map.getIsWall(intendedX, intendedY))) {
             this.x = intendedX;
             this.y = intendedY;
             // always trigger dirty when moving
@@ -669,19 +703,25 @@ class MovableCharacter extends Character {
 class PlayerCharacter extends MovableCharacter {
     constructor(initialX, initialY, characterAnimation) {
         super(initialX, initialY, characterAnimation);
+        this.health = 100;
     }
 
     handleGameCommand(command, maxX, maxY, map) {
         if (command == 'FIRE') {
-            var characterAnimation = new CharacterAnimation(this.characterAnimation.facing, '-', '-', '-', '-');
+            var characterAnimation = new CharacterAnimation(this.characterAnimation.facing, '\u25C0', '\u25B2', '\u25B6', '\u25BC');
             var projectile = new ProjectileCharacter(this.x, this.y, this.characterAnimation.facing, 8, characterAnimation, map);
             projectile.copyAnimationListener(this);
             gameObjects.addObject(projectile);
         } else {
-            this.move(command, maxX, maxY, map);
+            this.move(command, map);
         }
     }
 
+    collide(withObject) {
+        if (withObject instanceof EnemyCharacter) {
+            this.health = 0;
+        }
+    }
 }
 
 class EnemyCharacter extends MovableCharacter {
@@ -691,7 +731,23 @@ class EnemyCharacter extends MovableCharacter {
         this.map = map;
 
         this.lastUpdate = 0;
-        this.thinkSpeed = 0.8;
+        this.thinkSpeed = (1 / 1.0) * 1000;
+    }
+
+    checkCollision() {
+        var collided = false;
+        var that = this;
+        var collisionObjects = gameObjects.objects.filter(obj => obj !== that &&
+                                                          obj.collide && 
+                                                          obj.x == this.x && 
+                                                          obj.y == this.y);
+        if (collisionObjects.length > 0) {
+            var that = this;
+            collisionObjects.map(obj => obj.collide(that));
+            collided = true;
+        }
+
+        return collided;
     }
 
     think() {
@@ -711,8 +767,8 @@ class EnemyCharacter extends MovableCharacter {
             direction = FACING_UP;
             break;
         }
-
-        this.move(direction, this.map.width, this.map.height, this.map);
+        
+        this.move(direction, this.map);
     }
 
     update(timeNow) {
@@ -721,6 +777,14 @@ class EnemyCharacter extends MovableCharacter {
         if (timeNow - this.lastUpdate > this.thinkSpeed) {
             this.think();
             this.lastUpdate = timeNow;
+        }
+
+        this.checkCollision();
+    }
+
+    collide(withObject) {
+        if (withObject instanceof ProjectileCharacter) {
+            gameObjects.removeObject(this);
         }
     }
 }
@@ -735,12 +799,25 @@ class ProjectileCharacter extends MovableCharacter {
         this.initialY = initialY;
         this.distanceTraveled = 0;
         this.maxDistance = maxDistance;
-        this.travelSpeed = 4;
+        this.travelSpeed = (1 / 6.0) * 1000;
         this.lastUpdate = 0;
+        this.obeyWalls = false;
+    }
+
+    checkCollision() {
+        var that = this;
+        var collisionObjects = gameObjects.objects.filter(obj => obj !== that &&
+                                                          obj.collide && 
+                                                          obj.x == that.x && 
+                                                          obj.y == that.y);
+        if (collisionObjects.length > 0) {
+            var that = this;
+            collisionObjects.map(obj => obj.collide(that));
+        }
     }
 
     think() {
-        this.move(this.direction, this.map.width, this.map.height, this.map);
+        this.move(this.direction, this.map);
         this.distanceTraveled++;
         if (this.distanceTraveled >= this.maxDistance) {
             gameObjects.removeObject(this);
@@ -754,6 +831,8 @@ class ProjectileCharacter extends MovableCharacter {
             this.think();
             this.lastUpdate = timeNow;
         }
+
+        this.checkCollision();
     }
 }
 
