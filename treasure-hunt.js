@@ -183,6 +183,10 @@ class AnimationHandler {
             }
         }
     }
+
+    clearAnimations() {
+        this.animations = []
+    }
 }
 
 class Game {
@@ -285,14 +289,16 @@ class TreasureHuntGame {
         enemy.collider = new Collider(enemy);
         return enemy;
     }
-
-    initialize() {
+    
+    resetLevel() {
         var that = this;
-
-        var EXPLOSION_SPEED = 2000; // num milliseconds between frames of WIN explosion     
         
-        var lastExplosionTime = Date.now();
-        var lastBlinkTime = Date.now();
+        this.state = this.STATE_RUNNING;
+
+        // start from scratch
+        gameObjects.removeAllObjects();
+        this.animationHandler.clearAnimations();
+        this.character.reset();
 
         var onAnimation = function(character) {
             if (that.renderer.isOnScreen(character)) {
@@ -324,6 +330,18 @@ class TreasureHuntGame {
 
         // first draw of render
         this.renderer.render(this.map);
+    }
+
+    initialize() {
+        var that = this;
+
+        var EXPLOSION_SPEED = 2000; // num milliseconds between frames of WIN explosion     
+        
+        var lastExplosionTime = Date.now();
+        var lastBlinkTime = Date.now();
+        var resetLevelTime = -1;
+
+        this.resetLevel();
 
         // this is a blocking animation that 'explodes' the 
         //...goal into an explosion
@@ -341,6 +359,7 @@ class TreasureHuntGame {
 
                 that.animationHandler.addAnimation(new WinAnimation(that.character.x, that.character.y, that.map.width, that.map.height));
                 that.animationHandler.addAnimation(new TextAnimaton(that.character.x, that.character.y, "DEAD"));
+                resetLevelTime = Date.now() + 6000;
             }
         }
 
@@ -350,6 +369,8 @@ class TreasureHuntGame {
 
                 that.animationHandler.addAnimation(new WinAnimation(that.goal.x, that.goal.y, that.map.width, that.map.height));
                 that.animationHandler.addAnimation(new TextAnimaton(that.goal.x, that.goal.y, "WIN"));
+
+                resetLevelTime = Date.now() + 6000;
             }
         }
 
@@ -366,11 +387,6 @@ class TreasureHuntGame {
                     // update character movement
                     that.character.handleGameCommand(gameCommand, that.map.width, that.map.height, that.map);
                     that.renderer.centerViewportOn(that.character, that.map);
-
-
-
-                    checkWinCondition();
-                    checkDeadCondition();
                 }
             }
 
@@ -379,6 +395,9 @@ class TreasureHuntGame {
                 gameObjects.objects.map(x => x.update(now));
                 // check all collisions
                 gameObjects.objects.filter(x => x.hasOwnProperty('collider')).map(x => x.collider.checkCollision());
+
+                checkWinCondition();
+                checkDeadCondition();
             } else if (that.state == that.STATE_WINNING ||
                        that.state == that.STATE_DEAD) {
                 // clear everything
@@ -386,6 +405,10 @@ class TreasureHuntGame {
                 
                 // win/die condition
                 spawnExplosions(now, that.character);
+
+                if (resetLevelTime >= 0 && now > resetLevelTime) {
+                    that.resetLevel();
+                }
             }
 
             // this currently adds all the characters to the renderer so it should be 
@@ -590,6 +613,8 @@ class Character {
     constructor(initialX, initialY, symbol) {
         this.x = initialX;
         this.y = initialY;
+        this.initialX = initialX;
+        this.initialY = initialY;
         this.symbol = symbol;
         this.animationListeners = [];
     }
@@ -692,6 +717,12 @@ class PlayerCharacter extends MovableCharacter {
         this.health = 100;
     }
 
+    reset() {
+        this.x = this.initialX;
+        this.y = this.initialY;
+        this.health = 100;
+    }
+
     handleGameCommand(command, maxX, maxY, map) {
         if (command == 'FIRE') {
             var characterAnimation = new CharacterAnimation(this.characterAnimation.facing, '\u25C0', '\u25B2', '\u25B6', '\u25BC');
@@ -764,8 +795,6 @@ class ProjectileCharacter extends MovableCharacter {
 
         this.map = map;
         this.direction = direction;
-        this.initialX = initialX;
-        this.initialY = initialY;
         this.distanceTraveled = 0;
         this.maxDistance = maxDistance;
         this.travelSpeed = (1 / 6.0) * 1000;
