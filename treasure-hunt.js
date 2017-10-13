@@ -433,11 +433,11 @@ class TreasureHuntGame {
     }
 
     drawHelp(characterSymbol) {
-        var output = 'Instructions: Use Chrome (other browsers not supported)\n';
-        output = output + 'Click anywhere on the web page itself\n\n';
-        output = output + 'Use your "' + characterSymbol + '" character and go find the treasure ($)!\n'; 
-        output = output + 'but watch out for bad guys!\n'; 
+        var output = 'Instructions: Use Firefox or Chrome (Firefox reduces flickering!)\n';
+        output = output + 'Break out the dev tools into a separate window and then click on my actual web page to enable controls.\n\n';
+        output = output + 'Use your "' + characterSymbol + '" character and go find the treasure ($) but watch out for bad guys...\n\n'; 
         output = output + '| Control  | Action |\n';
+        output = output + '|----------|--------|\n';
         output = output + '| spacebar | FIRE!  |\n';
         output = output + '| w        | Up     |\n';
         output = output + '| d        | Right  |\n';
