@@ -240,6 +240,7 @@ class TreasureHuntGame {
         // set up basic game objects
         this.game = new Game();
         this.map = new Map(map1);
+        this.keyMap = new KeyMap();
 
         this.character = this.createPlayer();
         this.renderer = new Renderer(globalOptions['viewportWidth'], globalOptions['viewportHeight']);
@@ -379,7 +380,7 @@ class TreasureHuntGame {
             var key = that.game.getLastKeypress();
             
             if (null !== key) {
-                var gameCommand = keyMap.getGameCommand(key.toString());
+                var gameCommand = that.keyMap.getGameCommand(key.toString());
 
                 if (gameCommand == 'QUIT') {
                     process.exit();
@@ -885,7 +886,5 @@ class KeyMap {
         }
     }
 }
-
-var keyMap = new KeyMap();
 
 run();
