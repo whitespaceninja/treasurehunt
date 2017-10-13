@@ -24,7 +24,7 @@ var map1 = [
 // Options that control the flow of the game
 var globalOptions = {
     'playInBrowser': true,
-    'drawFPS': 5,
+    'drawFPS': 10,
     'updateFPS': 10,
     'viewportWidth': 30,
     'viewportHeight': 10,
@@ -267,7 +267,9 @@ class TreasureHuntGame {
         var characterAnimation = new CharacterAnimation(FACING_DOWN, '\u25C1', '\u25B3', '\u25B7', '\u25BD');
         
         // start at the top left of the map
-        return new PlayerCharacter(1, 1, characterAnimation);
+        var player = new PlayerCharacter(1, 1, characterAnimation);
+        player.collider = new Collider(player);
+        return player;
     }
 
     createGoal(character, map) {
@@ -279,7 +281,9 @@ class TreasureHuntGame {
         // create enemies
         var enemyAnimation = new CharacterAnimation(FACING_DOWN, '\u263F', '\u263F', '\u263F', '\u263F');
         var enemyPlacement = this.getRandomMapPlacement(character, map);
-        return new EnemyCharacter(enemyPlacement.x, enemyPlacement.y, enemyAnimation, map);
+        var enemy = new EnemyCharacter(enemyPlacement.x, enemyPlacement.y, enemyAnimation, map);
+        enemy.collider = new Collider(enemy);
+        return enemy;
     }
 
 
@@ -372,7 +376,10 @@ class TreasureHuntGame {
             }
 
             if (that.state == that.STATE_RUNNING) {
+                // update everything
                 gameObjects.objects.map(x => x.update(now));
+                // check all collisions
+                gameObjects.objects.filter(x => x.hasOwnProperty('collider')).map(x => x.collider.checkCollision());
             } else if (that.state == that.STATE_WINNING ||
                        that.state == that.STATE_DEAD) {
                 // clear everything
@@ -576,6 +583,23 @@ class CharacterAnimation {
     }
 }
 
+class Collider {
+    constructor(parentObject) {
+        this.parentObject = parentObject;
+    }
+
+    checkCollision() {
+        var parent = this.parentObject;
+        var collisionObjects = gameObjects.objects.filter(obj => obj !== parent &&
+                                                          obj.collide && 
+                                                          obj.x == parent.x && 
+                                                          obj.y == parent.y);
+        if (collisionObjects.length > 0) {
+            collisionObjects.map(obj => obj.collide(parent));
+        }
+    }
+}
+
 class Character {
     constructor(initialX, initialY, symbol) {
         this.x = initialX;
@@ -712,6 +736,7 @@ class PlayerCharacter extends MovableCharacter {
             var characterAnimation = new CharacterAnimation(this.characterAnimation.facing, '\u25C0', '\u25B2', '\u25B6', '\u25BC');
             var projectile = new ProjectileCharacter(this.x, this.y, this.characterAnimation.facing, 8, characterAnimation, map);
             projectile.copyAnimationListener(this);
+            projectile.collider = new Collider(projectile);
             gameObjects.addObject(projectile);
         } else {
             this.move(command, map);
@@ -733,22 +758,6 @@ class EnemyCharacter extends MovableCharacter {
 
         this.lastUpdate = 0;
         this.thinkSpeed = (1 / 1.0) * 1000;
-    }
-
-    checkCollision() {
-        var collided = false;
-        var that = this;
-        var collisionObjects = gameObjects.objects.filter(obj => obj !== that &&
-                                                          obj.collide && 
-                                                          obj.x == this.x && 
-                                                          obj.y == this.y);
-        if (collisionObjects.length > 0) {
-            var that = this;
-            collisionObjects.map(obj => obj.collide(that));
-            collided = true;
-        }
-
-        return collided;
     }
 
     think() {
@@ -779,8 +788,6 @@ class EnemyCharacter extends MovableCharacter {
             this.think();
             this.lastUpdate = timeNow;
         }
-
-        this.checkCollision();
     }
 
     collide(withObject) {
@@ -805,18 +812,6 @@ class ProjectileCharacter extends MovableCharacter {
         this.obeyWalls = false;
     }
 
-    checkCollision() {
-        var that = this;
-        var collisionObjects = gameObjects.objects.filter(obj => obj !== that &&
-                                                          obj.collide && 
-                                                          obj.x == that.x && 
-                                                          obj.y == that.y);
-        if (collisionObjects.length > 0) {
-            var that = this;
-            collisionObjects.map(obj => obj.collide(that));
-        }
-    }
-
     think() {
         this.move(this.direction, this.map);
         this.distanceTraveled++;
@@ -832,8 +827,6 @@ class ProjectileCharacter extends MovableCharacter {
             this.think();
             this.lastUpdate = timeNow;
         }
-
-        this.checkCollision();
     }
 }
 
