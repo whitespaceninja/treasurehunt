@@ -286,7 +286,6 @@ class TreasureHuntGame {
         return enemy;
     }
 
-
     initialize() {
         var that = this;
 
@@ -390,7 +389,7 @@ class TreasureHuntGame {
             }
 
             // this currently adds all the characters to the renderer so it should be 
-            //...after the removeAllCharacters() call above. Need to decide if this is
+            //...after the removeAllObjects() call above. Need to decide if this is
             //...an update function or a draw function...
             that.animationHandler.update(now);
         }
@@ -458,7 +457,6 @@ class Map {
 
 class Renderer {
     constructor(viewW, viewH) {
-        this.characters = [];
         this.viewport = { 'x': 0, 'y': 0, 'width': viewW, 'height': viewH }
         this.dirty = true;
     }
@@ -506,18 +504,6 @@ class Renderer {
         }
 
         console.log(output);
-    }
-
-    addCharacter(character) {
-        this.characters.push(character);
-    }
-
-    addCharacterList(characterList) {
-	this.characters = this.characters.concat(characterList);
-    }
-
-    removeAllCharacters(character) {
-        this.characters = [];
     }
 
     compareX(a,b) {
@@ -650,31 +636,6 @@ class MovableCharacter extends Character {
         super(initialX, initialY, characterAnimation.getSymbol());
         this.characterAnimation = characterAnimation;
         this.obeyWalls = true;
-    }
-
-    getPositionIfMove(direction) {
-        var intendedX = this.x;
-        var intendedY = this.y;
-
-        switch(direction) {
-        case FACING_LEFT: 
-            intendedX--; 
-            break;
-
-        case FACING_RIGHT:
-            intendedX++; 
-            break;
-
-        case FACING_UP:
-            intendedY--; 
-            break;
-
-        case FACING_DOWN:
-            intendedY++; 
-            break;
-        }
-
-        return { 'x': intendedX, 'y': intendedY };
     }
 
     move(direction, map) {
