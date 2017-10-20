@@ -2,10 +2,10 @@
 
 var map1 = [
 "|------------------------------------------------------------------------------------------------------------------------|",
-"|  |        |   |                             |                |        |   |                             |              |",
-"|  |   |----|   |-----|     |-------------|   |   |-------|    |   |----|   |-----|     |-------------|   |   |-------|  |",
-"|  |        |   |        |  |                 |           |    |        |   |        |  |                 |           |  |",
-"|  |---|    |        |   |  |   |-------------|           |    |---|    |   -    |   |  |   |-------------|           |  |",
+"|      |    |   |                             |                |        |   |                             |              |",
+"|      |----|   |-----|     |-------------|   |   |-------|    |   |----|   |-----|     |-------------|   |   |-------|  |",
+"|      |    |   |        |  |                 |           |    |        |   |        |  |                 |           |  |",
+"|      |    |        |   |  |   |-------------|           |    |---|    |   -    |   |  |   |-------------|           |  |",
 "|           |        |   |  |                 |           |             |        |   |  |                 |           |  |",
 "|                    |      |                             |                      |      |                             |  |",
 "|                    |                   |                |                      |                   |                |  |",
@@ -152,8 +152,7 @@ class WinAnimation extends Animation {
     }
 
     isExpired() {
-        return  
-            this.centerX - (this.radius * 2) < 0 &&
+        return this.centerX - (this.radius * 2) < 0 &&
             this.centerX + (this.radius * 2) > this.maxX &&
             this.centerY - (this.radius * 2) < 0 &&
             this.centerY + (this.radius * 2) > this.maxY;
@@ -259,7 +258,7 @@ class TreasureHuntGame {
         var y = randomNumber(map.height - 1);
 
         // don't let them overlap
-        while (map.getIsWall(x, y) || (character.x == x && character.y == y)) {
+        while (map.getIsWall(x, y) || (character.getX() == x && character.getY() == y)) {
             x = randomNumber(map.width - 1);
             y = randomNumber(map.height - 1);
         }
@@ -320,8 +319,11 @@ class TreasureHuntGame {
         // add game objects to renderer
         this.character.addAnimationListener(onAnimation);
         gameObjects.addObject(this.character);
+        // TODO: make this more automated
+        gameObjects.addObject(this.character.sprite);
 
         this.enemies.map(x => gameObjects.addObject(x));
+        this.enemies.map(x => gameObjects.addObject(x.sprite));
         this.map.getMapCharacters().map(x => gameObjects.addObject(x));
         gameObjects.addObject(this.goal);
 
@@ -330,7 +332,7 @@ class TreasureHuntGame {
         this.renderer.centerViewportOn(this.character, this.map);
 
         // first draw of render
-        this.renderer.render(this.map);
+        this.renderer.render();
     }
 
     initialize() {
@@ -358,18 +360,18 @@ class TreasureHuntGame {
             if (that.character.health <= 0) {
                 that.state = that.STATE_DEAD;
 
-                that.animationHandler.addAnimation(new WinAnimation(that.character.x, that.character.y, that.map.width, that.map.height));
-                that.animationHandler.addAnimation(new TextAnimaton(that.character.x, that.character.y, "DEAD"));
+                that.animationHandler.addAnimation(new WinAnimation(that.character.getX(), that.character.getY(), that.map.width, that.map.height));
+                that.animationHandler.addAnimation(new TextAnimaton(that.character.getX(), that.character.getY(), "DEAD"));
                 resetLevelTime = Date.now() + 6000;
             }
         }
 
         var checkWinCondition = function() {
-            if (that.character.x == that.goal.x && that.character.y == that.goal.y) {
+            if (that.character.getX() == that.goal.getX() && that.character.getY() == that.goal.getY()) {
                 that.state = that.STATE_WINNING;
 
-                that.animationHandler.addAnimation(new WinAnimation(that.goal.x, that.goal.y, that.map.width, that.map.height));
-                that.animationHandler.addAnimation(new TextAnimaton(that.goal.x, that.goal.y, "WIN"));
+                that.animationHandler.addAnimation(new WinAnimation(that.goal.getX(), that.goal.getY(), that.map.width, that.map.height));
+                that.animationHandler.addAnimation(new TextAnimaton(that.goal.getX(), that.goal.getY(), "WIN"));
 
                 resetLevelTime = Date.now() + 6000;
             }
@@ -394,6 +396,7 @@ class TreasureHuntGame {
             if (that.state == that.STATE_RUNNING) {
                 // update everything
                 gameObjects.objects.map(x => x.update(now));
+
                 // check all collisions
                 gameObjects.objects.filter(x => x.hasOwnProperty('collider')).map(x => x.collider.checkCollision());
 
@@ -425,8 +428,8 @@ class TreasureHuntGame {
             that.renderer.dirty = false;
 
             that.renderer.clearScreen();
-            that.drawHelp(that.character.getSymbol());
-            that.renderer.render(that.map);
+            that.drawHelp(that.character.getCharacter());
+            that.renderer.render();
         }
 
         this.game.initialize(update, draw);
@@ -475,7 +478,7 @@ class Map {
     }
 
     getIsWall(x, y) {
-        return this.getMapCharacters().filter(ch => ch.x == x && ch.y == y).length > 0;
+        return this.getMapCharacters().filter(ch => ch.getX() == x && ch.getY() == y).length > 0;
     }
 }
 
@@ -498,74 +501,150 @@ class Renderer {
 
     isOnScreen(character) {
         var onscreen = 
-            character.x >= this.viewport.x - 1 &&
-            character.x < this.viewport.x + this.viewport.width + 1 &&
-            character.y >= this.viewport.y - 1 &&
-            character.y < this.viewport.y + this.viewport.height + 1;
+            character.getX() + character.width >= this.viewport.x - 1 &&
+            character.getX() < this.viewport.x + this.viewport.width + 1 &&
+            character.getY() + character.height >= this.viewport.y - 1 &&
+            character.getY() < this.viewport.y + this.viewport.height + 1;
         return onscreen;
     }
 
-    render(map) {
+    render() {
         var output = '';
+        var renderableObjects = this.getRenderableObjectsOnScreen();
         for (var row = this.viewport.y; row < this.viewport.y + this.viewport.height; row++) {
-            // find all characters that need to be drawn in this row
-            var charactersInRow = this.getCharactersInRow(row);
-            
-            // if there aren't any, draw a blank line
-            if (charactersInRow.length <= 0) {
-                for (var col = 0; col < map.width; col++) {
-                    output = output + '\xa0'; // non-breaking space
+            for (var col = this.viewport.x; col < this.viewport.x + this.viewport.width; col++) {
+                var characters = renderableObjects.filter(c => c.getCharacter).map(c => c.getCharacter(row, col)).filter(c => c != null);
+                if (characters.length > 0) {
+                    output = output + characters[0];
+                } else {
+                    output = output + ' ';
                 }
-            } else {
-                // else there must be characters here, sort them first...
-                charactersInRow.sort(this.compareX);
-                
-                // ...then draw them all. Put it all in one string for quick render.
-                output = output + this.getOutputLine(charactersInRow);
             }
-
             output = output + '\n';
         }
 
         console.log(output);
     }
 
-    compareX(a,b) {
-        if (a.x < b.x)
-            return -1;
-        if (a.x > b.x)
-            return 1;
-        return 0;
-    }
-
-    getCharactersInRow(row) {
+    getRenderableObjectsOnScreen() {
         var that = this;
-        return gameObjects.objects.filter(c => 
-           c.y == row && 
-           c.x >= that.viewport.x && 
-           c.x <= that.viewport.x + that.viewport.width);
-    }
-
-    getOutputLine(charactersInRow) {
-        // ...then draw them all. Put it all in one string for quick render.
-        var output = '';
-        for (var col = this.viewport.x; col < this.viewport.x + this.viewport.width; col++) {
-	    var charactersInPosition = charactersInRow.filter(c => c.x == col);
-
-            if (charactersInPosition.length > 0) {
-		// use the first one in the list. No reason beyond laziness.
-                output = output + charactersInPosition[0].getSymbol();
-            } else {
-                output = output + ' ';
-            }
-        }
-
-        return output;
+        var renderable = gameObjects.objects.filter(c => c.isVisible && 
+                                                    that.isOnScreen(c));
+        return renderable;
     }
 
     centerViewportOn(character, map) {
-        this.viewport.x = Math.min(map.width - this.viewport.width, Math.max(0, character.x - (this.viewport.width / 2)));
-        this.viewport.y = Math.min(map.height - this.viewport.height, Math.max(0, character.y - (this.viewport.height / 2)));
+        this.viewport.x = Math.min(map.width - this.viewport.width, Math.max(0, character.getX() - (this.viewport.width / 2)));
+        this.viewport.y = Math.min(map.height - this.viewport.height, Math.max(0, character.getY() - (this.viewport.height / 2)));
+    }
+}
+
+class Sprite {
+    // format of a spriteMap:
+    // {
+    //     "<state>": [{ "displayTime": <timeInMillisec>, "characters": [<row1string>, <row2string>, etc] },
+    //                 { "displayTime": <timeInMillisec>, "characters": [<row1string>, <row2string>, etc] } ]
+    // }
+    constructor(spriteMap, parentObject) {
+        this.spriteMap = spriteMap;
+        this.parentObject = parentObject;
+        this.state = 0;
+        this.width = 1;
+        this.height = 1;
+        this.stateElapsed = 0;
+        this.lastUpdate = 0;
+        this.frame = 0;
+        this.isVisible = true;
+    }
+
+    update(timeNow) {
+        if (this.lastUpdate == 0) {
+            this.lastUpdate = timeNow;
+        }
+        
+        var elapsedTime = timeNow - this.lastUpdate;
+        this.lastUpdate = timeNow;
+        this.stateElapsed = this.stateElapsed + elapsedTime;
+        
+        var prevFrame = this.frame;
+        this.frame = this.calculateCurrentFrame();
+        if (this.frame != prevFrame) {
+            this.parentObject.onAnimated();
+        }
+
+        this.calculateSize();
+    }
+
+    calculateSize() {
+        var sprites = this.spriteMap[this.state];
+        var frame = this.frame;
+        var characterRows = sprites[frame]["characters"];
+
+        var firstRow = 999999;
+        var lastRow = 0;
+        var firstCol = 999999;
+        var lastCol = 0;
+
+        for (var row = 0; row < characterRows.length; row++) {
+            for (var col = 0; col < characterRows[row].length; col++) {
+                var symbol = characterRows[row].charAt(col);
+                if (symbol && symbol != ' ') {
+                    firstRow = Math.min(firstRow, row);
+                    lastRow = Math.max(lastRow, row);
+                    firstCol = Math.min(firstCol, col);
+                    lastCol = Math.max(lastCol, col);
+                }
+            }
+        }
+
+        this.width = lastCol - firstCol;
+        this.height = lastRow - firstRow;
+    }
+
+    setState(newState) {
+        this.state = newState;
+    }
+
+    getX() {
+        return this.parentObject.getX();
+    }
+
+    getY() {
+        return this.parentObject.getY();
+    }
+
+    calculateCurrentFrame() {
+        var sprites = this.spriteMap[this.state];
+        var totalTime = sprites.reduce(function(accumulator, currentValue) { return accumulator + currentValue["displayTime"]; }, 0);
+        var leftover = this.stateElapsed % totalTime;
+        var frame = 0;
+        var timeAccumulator = 0;
+        for (var i = 0; i < sprites.length; i++) {
+            frame = i;
+            var displayTime = sprites[i]["displayTime"];
+            if (timeAccumulator + displayTime > leftover) {
+                break;
+            }
+            timeAccumulator = timeAccumulator + displayTime;
+        }
+
+        return frame;
+    }
+
+    getCharacter(row, col) {
+        var sprites = this.spriteMap[this.state];
+        var frame = this.frame;
+        var ourRow = row - this.parentObject.getY();
+        var ourCol = col - this.parentObject.getX();
+        var characterRows = sprites[frame]["characters"];
+
+        if (ourRow >= 0 && ourCol >= 0 && 
+            characterRows.length > ourRow && characterRows[ourRow].length > ourCol) {
+            var symbol = characterRows[ourRow].charAt(ourCol);
+            return symbol;
+        }
+
+        return null;
     }
 }
 
@@ -579,7 +658,7 @@ class CharacterAnimation {
         this.charMap[FACING_LEFT] = leftChar;
     }
 
-    getSymbol() {
+    getCharacter(row, col) {
         return this.charMap[this.facing];
     }
 
@@ -602,8 +681,8 @@ class Collider {
         var parent = this.parentObject;
         var collisionObjects = gameObjects.objects.filter(obj => obj !== parent &&
                                                           obj.collide && 
-                                                          obj.x == parent.x && 
-                                                          obj.y == parent.y);
+                                                          obj.getX() == parent.getX() && 
+                                                          obj.getY() == parent.getY());
         if (collisionObjects.length > 0) {
             collisionObjects.map(obj => obj.collide(parent));
         }
@@ -616,12 +695,26 @@ class Character {
         this.y = initialY;
         this.initialX = initialX;
         this.initialY = initialY;
+        this.width = 1;
+        this.height = 1;
         this.symbol = symbol;
+        this.isVisible = true;
         this.animationListeners = [];
     }
 
-    getSymbol() {
-        return this.symbol;
+    getX() {
+        return this.x;
+    }
+
+    getY() {
+        return this.y;
+    }
+
+    getCharacter(row, col) {
+        if (this.getX() == col && this.getY() == row) {
+            return this.symbol;
+        }
+        return null;
     }
 
     addAnimationListener(fnOnAnimate) {
@@ -659,14 +752,14 @@ class WallCharacter extends Character {
 
 class MovableCharacter extends Character {
     constructor(initialX, initialY, characterAnimation) {
-        super(initialX, initialY, characterAnimation.getSymbol());
+        super(initialX, initialY, characterAnimation.getCharacter());
         this.characterAnimation = characterAnimation;
         this.obeyWalls = true;
     }
 
     move(direction, map) {
-        var intendedX = this.x;
-        var intendedY = this.y;
+        var intendedX = this.getX();
+        var intendedY = this.getY();
         var dirty = false;
 
         switch(direction) {
@@ -707,8 +800,11 @@ class MovableCharacter extends Character {
         }
     }
 
-    getSymbol() {
-        return this.characterAnimation.getSymbol();
+    getCharacter(row, col) {
+        if (this.getX() == col && this.getY() == row) {
+            return this.characterAnimation.getCharacter(row, col);
+        }
+        return null;
     }
 }
 
@@ -716,6 +812,16 @@ class PlayerCharacter extends MovableCharacter {
     constructor(initialX, initialY, characterAnimation) {
         super(initialX, initialY, characterAnimation);
         this.health = 100;
+        var spriteMap = {
+            "0": [{ "displayTime": 500, "characters": [" - ",
+                                                       "+++",
+                                                       " - "] },
+        { "displayTime": 500, "characters": [" - ",
+                                             "+++",
+                                             " + "] } ]
+        };
+        this.sprite = new Sprite(spriteMap, this);
+        this.isVisible = false;
     }
 
     reset() {
@@ -727,7 +833,7 @@ class PlayerCharacter extends MovableCharacter {
     handleGameCommand(command, maxX, maxY, map) {
         if (command == 'FIRE') {
             var characterAnimation = new CharacterAnimation(this.characterAnimation.facing, '\u25C0', '\u25B2', '\u25B6', '\u25BC');
-            var projectile = new ProjectileCharacter(this.x, this.y, this.characterAnimation.facing, 8, characterAnimation, map);
+            var projectile = new ProjectileCharacter(this.getX(), this.getY(), this.characterAnimation.facing, 8, characterAnimation, map);
             projectile.copyAnimationListener(this);
             projectile.collider = new Collider(projectile);
             gameObjects.addObject(projectile);
@@ -751,6 +857,15 @@ class EnemyCharacter extends MovableCharacter {
 
         this.lastUpdate = 0;
         this.thinkSpeed = (1 / 1.0) * 1000;
+        var animateTime = 100;
+        var spriteMap = {
+            "0": [{ "displayTime": animateTime, "characters": ['0'] },
+                  { "displayTime": animateTime, "characters": ['o'] },
+                  { "displayTime": animateTime, "characters": ['.'] },
+                  { "displayTime": animateTime, "characters": ['o'] } ]
+        };
+        this.sprite = new Sprite(spriteMap, this);
+        this.isVisible = false;
     }
 
     think() {
