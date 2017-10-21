@@ -53,10 +53,16 @@ class GameObjects {
 
     addObject(obj) {
         this.objects.push(obj);
+        for (var i = 0; obj.children && i < obj.children.length; i++) {
+            this.addObject(obj.children[i]);
+        }
     }
 
     removeObject(obj) {
         this.objects = this.objects.filter(x => x !== obj);
+        for (var i = 0; obj.children && i < obj.children.length; i++) {
+            this.removeObject(obj.children[i]);
+        }
     }
 
     removeAllObjects() {
@@ -99,7 +105,7 @@ class TextAnimaton extends Animation {
             // add WIN in the center of the explosion.
             for (var i = 0; i < this.text.length; i++) {
                 var x_offset = Math.floor(this.text.length / 2) - i;
-                gameObjects.addObject(new Character(this.centerX - x_offset, this.centerY, this.text.charAt(i)));
+                gameObjects.addObject(new StaticCharacter(this.centerX - x_offset, this.centerY, this.text.charAt(i)));
             }
         }
         renderer.setDirty();
@@ -144,7 +150,7 @@ class WinAnimation extends Animation {
                 }
                 
                 var x = this.centerX + ((this.radius - difference) * multiplier);
-                var character = new Character(x, y, '*');
+                var character = new StaticCharacter(x, y, '*');
                 gameObjects.addObject(character);
             }
         }
@@ -267,26 +273,20 @@ class TreasureHuntGame {
     }
 
     createPlayer() {
-        // the ascii characters we draw in each position
-        var characterAnimation = new CharacterAnimation(FACING_DOWN, '\u25C1', '\u25B3', '\u25B7', '\u25BD');
-        
         // start at the top left of the map
-        var player = new PlayerCharacter(1, 1, characterAnimation);
-        player.collider = new Collider(player);
+        var player = new PlayerCharacter(1, 1);
         return player;
     }
 
     createGoal(character, map) {
         var goalPlacement = this.getRandomMapPlacement(character, map);
-        return new Character(goalPlacement.x, goalPlacement.y, '$');
+        return new StaticCharacter(goalPlacement.x, goalPlacement.y, '$');
     }
 
     createEnemy(character, map) {
         // create enemies
-        var enemyAnimation = new CharacterAnimation(FACING_DOWN, '\u263F', '\u263F', '\u263F', '\u263F');
         var enemyPlacement = this.getRandomMapPlacement(character, map);
-        var enemy = new EnemyCharacter(enemyPlacement.x, enemyPlacement.y, enemyAnimation, map);
-        enemy.collider = new Collider(enemy);
+        var enemy = new EnemyCharacter(enemyPlacement.x, enemyPlacement.y);
         return enemy;
     }
     
@@ -319,11 +319,8 @@ class TreasureHuntGame {
         // add game objects to renderer
         this.character.addAnimationListener(onAnimation);
         gameObjects.addObject(this.character);
-        // TODO: make this more automated
-        gameObjects.addObject(this.character.sprite);
 
         this.enemies.map(x => gameObjects.addObject(x));
-        this.enemies.map(x => gameObjects.addObject(x.sprite));
         this.map.getMapCharacters().map(x => gameObjects.addObject(x));
         gameObjects.addObject(this.goal);
 
@@ -351,7 +348,7 @@ class TreasureHuntGame {
         var spawnExplosions = function(now, centeredCharacter) {
             // spawn a new animation based on EXPLOSION_SPEED
             if (now - lastExplosionTime > EXPLOSION_SPEED) {
-                that.animationHandler.addAnimation(new WinAnimation(centeredCharacter.x, centeredCharacter.y, that.map.width, that.map.height));
+                that.animationHandler.addAnimation(new WinAnimation(centeredCharacter.getX(), centeredCharacter.getY(), that.map.width, that.map.height));
                 lastExplosionTime = now;
             }
         };
@@ -388,7 +385,7 @@ class TreasureHuntGame {
                     process.exit();
                 } else if (that.state == that.STATE_RUNNING) {   
                     // update character movement
-                    that.character.handleGameCommand(gameCommand, that.map.width, that.map.height, that.map);
+                    that.character.handleGameCommand(gameCommand);
                     that.renderer.centerViewportOn(that.character, that.map);
                 }
             }
@@ -478,13 +475,13 @@ class Map {
     }
 
     getIsWall(x, y) {
-        return this.getMapCharacters().filter(ch => ch.getX() == x && ch.getY() == y).length > 0;
+        return this.getMapCharacters().filter(ch => ch.getBounds().intersectsPoint(x, y)).length > 0;
     }
 }
 
 class Renderer {
     constructor(viewW, viewH) {
-        this.viewport = { 'x': 0, 'y': 0, 'width': viewW, 'height': viewH }
+        this.viewport = new Rectangle(0, 0, viewW, viewH);
         this.dirty = true;
     }
 
@@ -500,12 +497,7 @@ class Renderer {
     }
 
     isOnScreen(character) {
-        var onscreen = 
-            character.getX() + character.width >= this.viewport.x - 1 &&
-            character.getX() < this.viewport.x + this.viewport.width + 1 &&
-            character.getY() + character.height >= this.viewport.y - 1 &&
-            character.getY() < this.viewport.y + this.viewport.height + 1;
-        return onscreen;
+        return character.isVisible && character.getBounds().intersects(this.viewport);
     }
 
     render() {
@@ -549,12 +541,14 @@ class Sprite {
         this.spriteMap = spriteMap;
         this.parentObject = parentObject;
         this.state = 0;
-        this.width = 1;
-        this.height = 1;
         this.stateElapsed = 0;
         this.lastUpdate = 0;
         this.frame = 0;
         this.isVisible = true;
+    }
+
+    getBounds() {
+        return this.parentObject.bounds;
     }
 
     update(timeNow) {
@@ -597,8 +591,8 @@ class Sprite {
             }
         }
 
-        this.width = lastCol - firstCol;
-        this.height = lastRow - firstRow;
+        this.parentObject.getBounds().width = lastCol - firstCol + 1;
+        this.parentObject.getBounds().height = lastRow - firstRow + 1;
     }
 
     setState(newState) {
@@ -641,34 +635,12 @@ class Sprite {
         if (ourRow >= 0 && ourCol >= 0 && 
             characterRows.length > ourRow && characterRows[ourRow].length > ourCol) {
             var symbol = characterRows[ourRow].charAt(ourCol);
-            return symbol;
+            if (symbol != ' ') {
+                return symbol;
+            }
         }
 
         return null;
-    }
-}
-
-class CharacterAnimation {
-    constructor(facingStart, leftChar, upChar, rightChar, downChar) {
-        this.facing = facingStart;
-        this.charMap = {};
-        this.charMap[FACING_UP] = upChar;
-        this.charMap[FACING_RIGHT] = rightChar;
-        this.charMap[FACING_DOWN] = downChar;
-        this.charMap[FACING_LEFT] = leftChar;
-    }
-
-    getCharacter(row, col) {
-        return this.charMap[this.facing];
-    }
-
-    setFacing(newFacing) {
-        if (this.facing != newFacing) {
-            var diffSymbol = this.charMap[this.facing] != this.charMap[newFacing];
-            this.facing = newFacing;
-            return diffSymbol;
-        }
-        return false;
     }
 }
 
@@ -681,8 +653,7 @@ class Collider {
         var parent = this.parentObject;
         var collisionObjects = gameObjects.objects.filter(obj => obj !== parent &&
                                                           obj.collide && 
-                                                          obj.getX() == parent.getX() && 
-                                                          obj.getY() == parent.getY());
+                                                          obj.getBounds().intersects(parent.getBounds()));
         if (collisionObjects.length > 0) {
             collisionObjects.map(obj => obj.collide(parent));
         }
@@ -690,30 +661,29 @@ class Collider {
 }
 
 class Character {
-    constructor(initialX, initialY, symbol) {
-        this.x = initialX;
-        this.y = initialY;
+    constructor(initialX, initialY) {
         this.initialX = initialX;
         this.initialY = initialY;
-        this.width = 1;
-        this.height = 1;
-        this.symbol = symbol;
+        this.bounds = new Rectangle(initialX, initialY, 1, 1);
         this.isVisible = true;
+        this.obeysPhysics = false;
         this.animationListeners = [];
+        this.children = [];
     }
 
     getX() {
-        return this.x;
+        return this.bounds.x;
     }
 
     getY() {
-        return this.y;
+        return this.bounds.y;
+    }
+
+    getBounds() {
+        return this.bounds;
     }
 
     getCharacter(row, col) {
-        if (this.getX() == col && this.getY() == row) {
-            return this.symbol;
-        }
         return null;
     }
 
@@ -738,9 +708,32 @@ class Character {
     }
 }
 
+class StaticCharacter extends Character {
+   constructor(initialX, initialY, symbol) {
+        super(initialX, initialY);
+        this.symbol = symbol;
+    }
+
+    getCharacter(row, col) {
+        if (this.getX() == col && this.getY() == row) {
+            return this.symbol;
+        }
+        return null;
+    }
+}
+
 class WallCharacter extends Character {
     constructor(initialX, initialY, symbol) {
-        super(initialX, initialY, symbol);
+        super(initialX, initialY);
+        this.symbol = symbol;
+        this.isPhysical = true;
+    }
+
+    getCharacter(row, col) {
+        if (this.getX() == col && this.getY() == row) {
+            return this.symbol;
+        }
+        return null;
     }
 
     collide(withObject) {
@@ -750,37 +743,48 @@ class WallCharacter extends Character {
     }
 }
 
-class MovableCharacter extends Character {
-    constructor(initialX, initialY, characterAnimation) {
-        super(initialX, initialY, characterAnimation.getCharacter());
-        this.characterAnimation = characterAnimation;
-        this.obeyWalls = true;
+class Movable {
+    constructor(parentObject) {
+        this.parentObject = parentObject;
+        this.facing = FACING_DOWN;
     }
 
-    move(direction, map) {
-        var intendedX = this.getX();
-        var intendedY = this.getY();
+    update(timeNow) {
+        // do nothing?
+    }
+
+    setFacing(newFacing) {
+        if (newFacing != this.facing) {
+            this.facing = newFacing;
+            return true;
+        }
+        return false;
+    }
+
+    move(direction) {
+        var intendedX = this.parentObject.getX();
+        var intendedY = this.parentObject.getY();
         var dirty = false;
 
         switch(direction) {
         case FACING_LEFT: 
             intendedX--; 
-            dirty = this.characterAnimation.setFacing(FACING_LEFT);
+            dirty = this.setFacing(FACING_LEFT);
             break;
 
         case FACING_RIGHT:
             intendedX++; 
-            dirty = this.characterAnimation.setFacing(FACING_RIGHT);
+            dirty = this.setFacing(FACING_RIGHT);
             break;
 
         case FACING_UP:
             intendedY--; 
-            dirty = this.characterAnimation.setFacing(FACING_UP);
+            dirty = this.setFacing(FACING_UP);
             break;
 
         case FACING_DOWN:
             intendedY++; 
-            dirty = this.characterAnimation.setFacing(FACING_DOWN);
+            dirty = this.setFacing(FACING_DOWN);
             break;
 
         default:
@@ -788,57 +792,68 @@ class MovableCharacter extends Character {
             return
         }
 
-        if (!(this.obeyWalls && map.getIsWall(intendedX, intendedY))) {
-            this.x = intendedX;
-            this.y = intendedY;
+        var that = this;
+        var newRect = new Rectangle(intendedX, intendedY, this.parentObject.getBounds().width, this.parentObject.getBounds().height);
+        // TODO: use width and height (Intersection method!)
+        var objectsAlreadyInSpace = gameObjects.objects.filter(c => 
+                                                               c !== that && 
+                                                               c.isPhysical && 
+                                                               c.getBounds().intersects(newRect)).length > 0;
+        if (!(this.parentObject.obeysPhysics && objectsAlreadyInSpace)) {
+            this.parentObject.getBounds().x = intendedX;
+            this.parentObject.getBounds().y = intendedY;
             // always trigger dirty when moving
             dirty = true;
         }
 
         if (dirty) {
-            this.onAnimated();
+            this.parentObject.onAnimated();
         }
-    }
-
-    getCharacter(row, col) {
-        if (this.getX() == col && this.getY() == row) {
-            return this.characterAnimation.getCharacter(row, col);
-        }
-        return null;
     }
 }
 
-class PlayerCharacter extends MovableCharacter {
-    constructor(initialX, initialY, characterAnimation) {
-        super(initialX, initialY, characterAnimation);
+class PlayerCharacter extends Character {
+    constructor(initialX, initialY) {
+        super(initialX, initialY);
         this.health = 100;
-        var spriteMap = {
-            "0": [{ "displayTime": 500, "characters": [" - ",
-                                                       "+++",
-                                                       " - "] },
-        { "displayTime": 500, "characters": [" - ",
-                                             "+++",
-                                             " + "] } ]
-        };
+        this.isVisible = true;
+        this.obeysPhysics = true;
+
+        var spriteMap = {};
+        spriteMap[FACING_LEFT] = [{ "displayTime": 999999, "characters": ['\u25C1'] }];
+        spriteMap[FACING_UP] = [{ "displayTime": 999999, "characters": ['\u25B3'] }];
+        spriteMap[FACING_RIGHT] = [{ "displayTime": 999999, "characters": ['\u25B7'] }];
+        spriteMap[FACING_DOWN] = [{ "displayTime": 999999, "characters": ['\u25BD'] }];
+
         this.sprite = new Sprite(spriteMap, this);
-        this.isVisible = false;
+        this.sprite.setState(FACING_DOWN);
+        this.movable = new Movable(this);
+
+        // TODO: add this to gameObjects?
+        this.collider = new Collider(this);
+
+        this.children.push(this.sprite);
+        this.children.push(this.movable);
+    }
+
+    onAnimated() {
+        super.onAnimated();
+        this.sprite.setState(this.movable.facing);
     }
 
     reset() {
-        this.x = this.initialX;
-        this.y = this.initialY;
+        this.bounds.x = this.initialX;
+        this.bounds.y = this.initialY;
         this.health = 100;
     }
 
-    handleGameCommand(command, maxX, maxY, map) {
+    handleGameCommand(command) {
         if (command == 'FIRE') {
-            var characterAnimation = new CharacterAnimation(this.characterAnimation.facing, '\u25C0', '\u25B2', '\u25B6', '\u25BC');
-            var projectile = new ProjectileCharacter(this.getX(), this.getY(), this.characterAnimation.facing, 8, characterAnimation, map);
+            var projectile = new ProjectileCharacter(this.getX(), this.getY(), this.movable.facing, 8);
             projectile.copyAnimationListener(this);
-            projectile.collider = new Collider(projectile);
             gameObjects.addObject(projectile);
         } else {
-            this.move(command, map);
+            this.movable.move(command);
         }
     }
 
@@ -849,23 +864,28 @@ class PlayerCharacter extends MovableCharacter {
     }
 }
 
-class EnemyCharacter extends MovableCharacter {
-    constructor(initialX, initialY, characterAnimation, map) {
-        super(initialX, initialY, characterAnimation);
-
-        this.map = map;
-
+class EnemyCharacter extends Character {
+    constructor(initialX, initialY) {
+        super(initialX, initialY);
+        this.isVisible = true;
+        this.obeysPhysics = true;
         this.lastUpdate = 0;
         this.thinkSpeed = (1 / 1.0) * 1000;
-        var animateTime = 100;
         var spriteMap = {
-            "0": [{ "displayTime": animateTime, "characters": ['0'] },
-                  { "displayTime": animateTime, "characters": ['o'] },
-                  { "displayTime": animateTime, "characters": ['.'] },
-                  { "displayTime": animateTime, "characters": ['o'] } ]
+            "0": [
+        { "displayTime": 910, "characters": ['0'] },
+        { "displayTime": 150, "characters": ['o'] },
+        { "displayTime": 130, "characters": ['.'] },
+        { "displayTime": 150, "characters": ['o'] } ]
         };
         this.sprite = new Sprite(spriteMap, this);
-        this.isVisible = false;
+        this.movable = new Movable(this);
+
+        // TODO: add this to gameObjects?
+        this.collider = new Collider(this);
+
+        this.children.push(this.sprite);
+        this.children.push(this.movable);
     }
 
     think() {
@@ -886,7 +906,7 @@ class EnemyCharacter extends MovableCharacter {
             break;
         }
         
-        this.move(direction, this.map);
+        this.movable.move(direction);
     }
 
     update(timeNow) {
@@ -905,21 +925,37 @@ class EnemyCharacter extends MovableCharacter {
     }
 }
 
-class ProjectileCharacter extends MovableCharacter {
-    constructor(initialX, initialY, direction, maxDistance, characterAnimation, map) {
-        super(initialX, initialY, characterAnimation);
+class ProjectileCharacter extends Character {
+    constructor(initialX, initialY, direction, maxDistance) {
+        super(initialX, initialY);
+        this.isVisible = true;
+        
+        var spriteMap = {};
+        spriteMap[FACING_LEFT] = [{ "displayTime": 999999, "characters": ['\u25C0'] }];
+        spriteMap[FACING_UP] = [{ "displayTime": 999999, "characters": ['\u25B2'] }];
+        spriteMap[FACING_RIGHT] = [{ "displayTime": 999999, "characters": ['\u25B6'] }];
+        spriteMap[FACING_DOWN] = [{ "displayTime": 999999, "characters": ['\u25BC'] }];
 
-        this.map = map;
+        this.sprite = new Sprite(spriteMap, this);
+        this.sprite.setState(direction);
+
         this.direction = direction;
         this.distanceTraveled = 0;
         this.maxDistance = maxDistance;
         this.travelSpeed = (1 / 6.0) * 1000;
         this.lastUpdate = 0;
-        this.obeyWalls = false;
+        this.obeysPhysics = false;
+        this.movable = new Movable(this);
+        
+        // TODO: add this to gameObjects
+        this.collider = new Collider(this);
+
+        this.children.push(this.sprite);
+        this.children.push(this.movable);
     }
 
     think() {
-        this.move(this.direction, this.map);
+        this.movable.move(this.direction);
         this.distanceTraveled++;
         if (this.distanceTraveled >= this.maxDistance) {
             gameObjects.removeObject(this);
@@ -958,6 +994,35 @@ class Thread {
 
         // initial call
         setTimeout(internalRun, 0); 
+    }
+}
+
+class Rectangle {
+    constructor(x, y, width, height) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
+
+    intersectsPoint(x, y) {
+        if (x < this.x + this.width &&
+            x >= this.x &&
+            y < this.y + this.height &&
+            y >= this.y) {
+            return true;
+        }
+        return false;
+    }
+
+    intersects(rectangle) {
+        if (this.x + this.width <= rectangle.x ||
+            this.x >= rectangle.x + rectangle.width ||
+            this.y + this.height <= rectangle.y ||
+            this.y >= rectangle.y + rectangle.height) {
+            return false;
+        }
+        return true;
     }
 }
 
