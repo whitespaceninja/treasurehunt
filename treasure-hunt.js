@@ -2,22 +2,22 @@
 
 var map1 = [
 "|------------------------------------------------------------------------------------------------------------------------|",
-"|      |    |   |                             |                |        |   |                             |              |",
-"|      |----|   |-----|     |-------------|   |   |-------|    |   |----|   |-----|     |-------------|   |   |-------|  |",
-"|      |    |   |        |  |                 |           |    |        |   |        |  |                 |           |  |",
-"|      |    |        |   |  |   |-------------|           |    |---|    |   -    |   |  |   |-------------|           |  |",
-"|           |        |   |  |                 |           |             |        |   |  |                 |           |  |",
-"|                    |      |                             |                      |      |                             |  |",
-"|                    |                   |                |                      |                   |                |  |",
-"|      |-------|     |                   |                |        |-------|     |                   |                |  |",
-"|                    |      |------------|                |                      |      |------------|                |  |",
-"|           |--------|   |  |                             |             |--------|   |  |                             |  |",
-"|                        |  |                  |----------|                          |  |                  |----------|  |",
-"|                        |  |                                                        |  |                                |",
-"|   |-------|                                                   |-------|                                                |",
-"|           |                    |----------------|                     |                    |----------------|          |",
-"|           |                                           |               |                                           |    |",
-"|           |               |                           |               |               |                           |    |",
+"|                                                                                                                        |",
+"|         __                                                                                                             |",
+"|       _/  |_                                                     ___                                                   |",
+"|      /______\\                   __                            __/   \\                                                  |",
+"|                           __   /  \\                          /       \\                                                 |",
+"|                          /  \\_/    \\                        |_________\\                                                |",
+"|                        _/           \\                                                                                  |",
+"|      ___              /              \\                                                                                 |",
+"|     /___\\          __/                \\                                                                                |",
+"|                   /____________________\\                  ______________                                               |",
+"|                                                          /              \\______                                        |",
+"|                                                         /______________________\\                                       |",
+"|                                                                                                                        |",
+"|                                                                                                                        |",
+"|                                                                                                                        |",
+"|                                                                                                                        |",
 "|------------------------------------------------------------------------------------------------------------------------|"
 ];
 
@@ -108,7 +108,6 @@ class TextAnimaton extends Animation {
                 gameObjects.addObject(new StaticCharacter(this.centerX - x_offset, this.centerY, this.text.charAt(i)));
             }
         }
-        renderer.setDirty();
     }
 
     isExpired() {
@@ -154,7 +153,6 @@ class WinAnimation extends Animation {
                 gameObjects.addObject(character);
             }
         }
-        renderer.setDirty();
     }
 
     isExpired() {
@@ -300,24 +298,16 @@ class TreasureHuntGame {
         this.animationHandler.clearAnimations();
         this.character.reset();
 
-        var onAnimation = function(character) {
-            if (that.renderer.isOnScreen(character)) {
-                that.renderer.setDirty();
-            }
-        }
-
         this.goal = this.createGoal(this.character, this.map);
         this.enemies = [];
         for (var i = 0; i < globalOptions['numEnemies']; i++) {
             var enemy = this.createEnemy(this.character, this.map);
-            enemy.addAnimationListener(onAnimation);
             this.enemies.push(enemy);
         }
 
         this.mapCharacters = this.map.getMapCharacters();
 
         // add game objects to renderer
-        this.character.addAnimationListener(onAnimation);
         gameObjects.addObject(this.character);
 
         this.enemies.map(x => gameObjects.addObject(x));
@@ -419,10 +409,9 @@ class TreasureHuntGame {
         }
 
         var draw = function() {
-            if (!that.renderer.dirty) {
+            if (!that.renderer.isDirty()) {
                 return;
             }
-            that.renderer.dirty = false;
 
             that.renderer.clearScreen();
             that.drawHelp(that.character.getCharacter());
@@ -482,11 +471,6 @@ class Map {
 class Renderer {
     constructor(viewW, viewH) {
         this.viewport = new Rectangle(0, 0, viewW, viewH);
-        this.dirty = true;
-    }
-
-    setDirty() {
-        this.dirty = true;
     }
 
     clearScreen() {
@@ -516,6 +500,12 @@ class Renderer {
         }
 
         console.log(output);
+
+        renderableObjects.map(c => c.needsRedraw = false);
+    }
+
+    isDirty() {
+        return this.getRenderableObjectsOnScreen().filter(c => c.needsRedraw).length > 0;
     }
 
     getRenderableObjectsOnScreen() {
@@ -666,6 +656,7 @@ class Character {
         this.initialY = initialY;
         this.bounds = new Rectangle(initialX, initialY, 1, 1);
         this.isVisible = true;
+        this.needsRedraw = true;
         this.obeysPhysics = false;
         this.animationListeners = [];
         this.children = [];
@@ -687,21 +678,8 @@ class Character {
         return null;
     }
 
-    addAnimationListener(fnOnAnimate) {
-        this.animationListeners.push(fnOnAnimate);
-    }
-
-    clearAnimationListeners() {
-        this.animationListeners = [];
-    }
-
     onAnimated() {
-        var that = this;
-        this.animationListeners.map(x => x(that));
-    }
-
-    copyAnimationListener(character) {
-        this.animationListeners = this.animationListeners.concat(character.animationListeners);
+        this.needsRedraw = true;
     }
 
     update(timeNow) {
@@ -850,7 +828,6 @@ class PlayerCharacter extends Character {
     handleGameCommand(command) {
         if (command == 'FIRE') {
             var projectile = new ProjectileCharacter(this.getX(), this.getY(), this.movable.facing, 8);
-            projectile.copyAnimationListener(this);
             gameObjects.addObject(projectile);
         } else {
             this.movable.move(command);
@@ -961,7 +938,7 @@ class ProjectileCharacter extends Character {
             gameObjects.removeObject(this);
         }
     }
-
+    
     update(timeNow) {
         super.update(timeNow);
 
