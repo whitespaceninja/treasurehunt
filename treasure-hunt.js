@@ -310,6 +310,12 @@ class TreasureHuntGame {
         gameObjects.addObject(this.goal);
         this.enemies.map(x => gameObjects.addObject(x));
         this.map.getMapCharacters().map(x => gameObjects.addObject(x));
+
+        /*this.door = new DoorwayCharacter(2, 2, function() {
+            window.location.href = 'http://www.google.com';
+            });*/
+
+        gameObjects.addObject(this.door);
         
         // center on the character
         this.renderer.centerViewportOn(this.character, this.map);
@@ -702,6 +708,28 @@ class Character {
     }
 }
 
+class DoorwayCharacter extends Character {
+    constructor(initialX, initialY, onCollide) {
+        super(initialX, initialY);
+        this.onCollide = onCollide;
+        this.collider = new Collider(this);
+    }
+
+    collide(withObject) {
+        if (withObject instanceof PlayerCharacter) {
+            this.onCollide();
+            this.removeFromGameObjects = true;
+        }
+    }
+
+    getCharacter(row, col) {
+        if (this.getX() == col && this.getY() == row) {
+            return '%';
+        }
+        return null;
+    }
+}
+
 class StaticCharacter extends Character {
    constructor(initialX, initialY, symbol) {
         super(initialX, initialY);
@@ -896,16 +924,16 @@ class EnemyCharacter extends Character {
         var random = randomNumber(4);
         var direction = 'NONE';
         switch (random) {
-        case 0: 
+        case 1: 
             direction = FACING_LEFT;
             break;
-        case 1:
+        case 2:
             direction = FACING_RIGHT;
             break;
-        case 2:
+        case 3:
             direction = FACING_DOWN;
             break;
-        case 3:
+        case 4:
             direction = FACING_UP;
             break;
         }
