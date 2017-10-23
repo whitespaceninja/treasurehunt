@@ -75,7 +75,7 @@ var gameObjects = new GameObjects();
 class Animation {
     constructor() { }
 
-    update(timeNow) { }
+    update(timeNow, timeElapsed) { }
 
     fillRenderer(renderer) { }
 
@@ -93,7 +93,7 @@ class TextAnimaton extends Animation {
         this.text = text;
     }
 
-    update(timeNow) {
+    update(timeNow, timeElapsed) {
         if (timeNow - this.lastFrame > this.frameSpeed) {
             this.isVisible = !this.isVisible;
             this.lastFrame = timeNow;
@@ -128,7 +128,7 @@ class WinAnimation extends Animation {
         this.maxY = maxY;
     }
 
-    update(timeNow) {
+    update(timeNow, timeElapsed) {
         var elapsed = timeNow - this.lastFrame;
         if (elapsed >= this.frameSpeed) {
             this.radius++;
@@ -173,10 +173,10 @@ class AnimationHandler {
         this.animations.push(animation);
     }
 
-    update(timeNow) {
+    update(timeNow, timeElapsed) {
         for (var i = this.animations.length - 1; i >= 0 ; i--) {
             var animation = this.animations[i];
-            animation.update(timeNow);
+            animation.update(timeNow, timeElapsed);
 
             if (animation.isExpired()) {
                 // remove it from our list
@@ -245,7 +245,6 @@ class TreasureHuntGame {
         this.map = new Map(map1);
         this.keyMap = new KeyMap();
 
-        this.character = this.createPlayer();
         this.renderer = new Renderer(globalOptions['viewportWidth'], globalOptions['viewportHeight']);
         this.animationHandler = new AnimationHandler(this.renderer);
 
@@ -284,18 +283,17 @@ class TreasureHuntGame {
     createEnemy(character, map) {
         // create enemies
         var enemyPlacement = this.getRandomMapPlacement(character, map);
-        var enemy = new EnemyCharacter(enemyPlacement.x, enemyPlacement.y);
-        return enemy;
+        return new EnemyCharacter(enemyPlacement.x, enemyPlacement.y);
     }
     
     resetLevel() {
-        var that = this;
-        
         this.state = this.STATE_RUNNING;
 
         // start from scratch
         gameObjects.removeAllObjects();
         this.animationHandler.clearAnimations();
+
+        this.character = this.createPlayer();
         this.character.reset();
 
         this.goal = this.createGoal(this.character, this.map);
@@ -309,11 +307,9 @@ class TreasureHuntGame {
 
         // add game objects to renderer
         gameObjects.addObject(this.character);
-
+        gameObjects.addObject(this.goal);
         this.enemies.map(x => gameObjects.addObject(x));
         this.map.getMapCharacters().map(x => gameObjects.addObject(x));
-        gameObjects.addObject(this.goal);
-
         
         // center on the character
         this.renderer.centerViewportOn(this.character, this.map);
@@ -364,8 +360,12 @@ class TreasureHuntGame {
             }
         }
 
+        var lastUpdate = Date.now();
+
         var update = function () {
             var now = Date.now();
+            var timeElapsed = now - lastUpdate;
+            lastUpdate = now;
             var key = that.game.getLastKeypress();
             
             if (null !== key) {
@@ -382,10 +382,19 @@ class TreasureHuntGame {
 
             if (that.state == that.STATE_RUNNING) {
                 // update everything
-                gameObjects.objects.map(x => x.update(now));
+                gameObjects.objects.map(x => x.update(now, timeElapsed));
 
                 // check all collisions
                 gameObjects.objects.filter(x => x.hasOwnProperty('collider')).map(x => x.collider.checkCollision());
+
+                // remove everything that needs to be removed
+                var removableObjects = gameObjects.objects.filter(x => x.removeFromGameObjects);
+                if (removableObjects.length > 0) {
+                   removableObjects.map(x => gameObjects.removeObject(x));
+                   that.renderer.setIsDirty();
+                }
+
+                that.renderer.checkRedraw();
 
                 checkWinCondition();
                 checkDeadCondition();
@@ -405,11 +414,11 @@ class TreasureHuntGame {
             // this currently adds all the characters to the renderer so it should be 
             //...after the removeAllObjects() call above. Need to decide if this is
             //...an update function or a draw function...
-            that.animationHandler.update(now);
+            that.animationHandler.update(now, timeElapsed);
         }
 
         var draw = function() {
-            if (!that.renderer.isDirty()) {
+            if (!that.renderer.getIsDirty()) {
                 return;
             }
 
@@ -471,6 +480,7 @@ class Map {
 class Renderer {
     constructor(viewW, viewH) {
         this.viewport = new Rectangle(0, 0, viewW, viewH);
+        this.isDirty = true;
     }
 
     clearScreen() {
@@ -501,11 +511,23 @@ class Renderer {
 
         console.log(output);
 
+        // clear the redraw flag on all objects we were able to render
         renderableObjects.map(c => c.needsRedraw = false);
     }
 
-    isDirty() {
-        return this.getRenderableObjectsOnScreen().filter(c => c.needsRedraw).length > 0;
+    getIsDirty() {
+        return this.isDirty;
+        
+    }
+
+    setIsDirty() {
+        this.isDirty = true;
+    }
+
+    checkRedraw() {
+        if (this.getRenderableObjectsOnScreen().filter(c => c.needsRedraw).length > 0) {
+            this.setIsDirty();
+        }
     }
 
     getRenderableObjectsOnScreen() {
@@ -532,7 +554,6 @@ class Sprite {
         this.parentObject = parentObject;
         this.state = 0;
         this.stateElapsed = 0;
-        this.lastUpdate = 0;
         this.frame = 0;
         this.isVisible = true;
     }
@@ -541,14 +562,8 @@ class Sprite {
         return this.parentObject.bounds;
     }
 
-    update(timeNow) {
-        if (this.lastUpdate == 0) {
-            this.lastUpdate = timeNow;
-        }
-        
-        var elapsedTime = timeNow - this.lastUpdate;
-        this.lastUpdate = timeNow;
-        this.stateElapsed = this.stateElapsed + elapsedTime;
+    update(timeNow, timeElapsed) {
+        this.stateElapsed = this.stateElapsed + timeElapsed;
         
         var prevFrame = this.frame;
         this.frame = this.calculateCurrentFrame();
@@ -658,6 +673,7 @@ class Character {
         this.isVisible = true;
         this.needsRedraw = true;
         this.obeysPhysics = false;
+        this.removeFromGameObjects = false;
         this.animationListeners = [];
         this.children = [];
     }
@@ -682,7 +698,7 @@ class Character {
         this.needsRedraw = true;
     }
 
-    update(timeNow) {
+    update(timeNow, timeElapsed) {
     }
 }
 
@@ -716,7 +732,7 @@ class WallCharacter extends Character {
 
     collide(withObject) {
         if (withObject instanceof ProjectileCharacter) {
-            gameObjects.removeObject(withObject);
+            withObject.removeFromGameObjects = true;
         }
     }
 }
@@ -727,7 +743,7 @@ class Movable {
         this.facing = FACING_DOWN;
     }
 
-    update(timeNow) {
+    update(timeNow, timeElapsed) {
         // do nothing?
     }
 
@@ -774,7 +790,7 @@ class Movable {
         var newRect = new Rectangle(intendedX, intendedY, this.parentObject.getBounds().width, this.parentObject.getBounds().height);
         // TODO: use width and height (Intersection method!)
         var objectsAlreadyInSpace = gameObjects.objects.filter(c => 
-                                                               c !== that && 
+                                                               c !== that.parentObject && 
                                                                c.isPhysical && 
                                                                c.getBounds().intersects(newRect)).length > 0;
         if (!(this.parentObject.obeysPhysics && objectsAlreadyInSpace)) {
@@ -805,13 +821,13 @@ class PlayerCharacter extends Character {
 
         this.sprite = new Sprite(spriteMap, this);
         this.sprite.setState(FACING_DOWN);
+        this.children.push(this.sprite);
+
         this.movable = new Movable(this);
+        this.children.push(this.movable);
 
         // TODO: add this to gameObjects?
         this.collider = new Collider(this);
-
-        this.children.push(this.sprite);
-        this.children.push(this.movable);
     }
 
     onAnimated() {
@@ -827,8 +843,7 @@ class PlayerCharacter extends Character {
 
     handleGameCommand(command) {
         if (command == 'FIRE') {
-            var projectile = new ProjectileCharacter(this.getX(), this.getY(), this.movable.facing, 8);
-            gameObjects.addObject(projectile);
+            this.fireProjectile();
         } else {
             this.movable.move(command);
         }
@@ -839,6 +854,18 @@ class PlayerCharacter extends Character {
             this.health = 0;
         }
     }
+
+    fireProjectile() {
+        // set up projectile sprite
+        var spriteMap = {};
+        spriteMap[FACING_LEFT] = [{ "displayTime": 999999, "characters": ['\u25C0'] }];
+        spriteMap[FACING_UP] = [{ "displayTime": 999999, "characters": ['\u25B2'] }];
+        spriteMap[FACING_RIGHT] = [{ "displayTime": 999999, "characters": ['\u25B6'] }];
+        spriteMap[FACING_DOWN] = [{ "displayTime": 999999, "characters": ['\u25BC'] }];
+
+        var projectile = new ProjectileCharacter(this.getX(), this.getY(), this.movable.facing, 8, spriteMap);
+        gameObjects.addObject(projectile);
+    }
 }
 
 class EnemyCharacter extends Character {
@@ -846,7 +873,7 @@ class EnemyCharacter extends Character {
         super(initialX, initialY);
         this.isVisible = true;
         this.obeysPhysics = true;
-        this.lastUpdate = 0;
+        this.thinkCounter = 0;
         this.thinkSpeed = (1 / 1.0) * 1000;
         var spriteMap = {
             "0": [
@@ -886,65 +913,66 @@ class EnemyCharacter extends Character {
         this.movable.move(direction);
     }
 
-    update(timeNow) {
+    update(timeNow, timeElapsed) {
         super.update(timeNow);
 
-        if (timeNow - this.lastUpdate > this.thinkSpeed) {
+        this.thinkCounter = this.thinkCounter + timeElapsed;
+
+        if (this.thinkCounter > this.thinkSpeed) {
+            this.thinkCounter = this.thinkCounter - this.thinkSpeed;
             this.think();
-            this.lastUpdate = timeNow;
         }
     }
 
     collide(withObject) {
         if (withObject instanceof ProjectileCharacter) {
-            gameObjects.removeObject(this);
+            this.removeFromGameObjects = true;
         }
     }
 }
 
 class ProjectileCharacter extends Character {
-    constructor(initialX, initialY, direction, maxDistance) {
+    constructor(initialX, initialY, direction, maxDistance, spriteMap) {
         super(initialX, initialY);
-        this.isVisible = true;
         
-        var spriteMap = {};
-        spriteMap[FACING_LEFT] = [{ "displayTime": 999999, "characters": ['\u25C0'] }];
-        spriteMap[FACING_UP] = [{ "displayTime": 999999, "characters": ['\u25B2'] }];
-        spriteMap[FACING_RIGHT] = [{ "displayTime": 999999, "characters": ['\u25B6'] }];
-        spriteMap[FACING_DOWN] = [{ "displayTime": 999999, "characters": ['\u25BC'] }];
-
-        this.sprite = new Sprite(spriteMap, this);
-        this.sprite.setState(direction);
-
+        this.isVisible = true;
         this.direction = direction;
         this.distanceTraveled = 0;
         this.maxDistance = maxDistance;
         this.travelSpeed = (1 / 6.0) * 1000;
-        this.lastUpdate = 0;
+        this.travelCounter = 0;
         this.obeysPhysics = false;
-        this.movable = new Movable(this);
-        
-        // TODO: add this to gameObjects
-        this.collider = new Collider(this);
 
+        // set up our sprite
+        this.sprite = new Sprite(spriteMap, this);
+        this.sprite.setState(direction);
         this.children.push(this.sprite);
+        
+        // set up our ability to move
+        this.movable = new Movable(this);
         this.children.push(this.movable);
+
+        // check for collisions with objects
+        // TODO: add this to children?
+        this.collider = new Collider(this);
     }
 
     think() {
         this.movable.move(this.direction);
         this.distanceTraveled++;
         if (this.distanceTraveled >= this.maxDistance) {
-            gameObjects.removeObject(this);
+            this.removeFromGameObjects = true;
         }
     }
     
-    update(timeNow) {
+    update(timeNow, timeElapsed) {
         super.update(timeNow);
 
-        if (timeNow - this.lastUpdate > this.travelSpeed) {
+        this.travelCounter = this.travelCounter + timeElapsed;
+
+        if (this.travelCounter >= this.travelSpeed) {
+            this.travelCounter = this.travelCounter - this.travelSpeed;
             this.think();
-            this.lastUpdate = timeNow;
         }
     }
 }
