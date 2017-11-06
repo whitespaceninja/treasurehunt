@@ -197,6 +197,7 @@ class Game {
         this.lastkeyPresses = [];
         this.threadUpdate = null;
         this.threadDraw = null;
+        this.renderer = new Renderer(globalOptions['viewportWidth'], globalOptions['viewportHeight']);
     }
 
     initialize(updateFunction, drawFunction) {
@@ -236,16 +237,203 @@ class Game {
         }
         return this.lastkeyPresses.shift();
     }
+
+    update(now, timeElapsed) {
+        // update everything
+        gameObjects.objects.map(x => x.update(now, timeElapsed));
+
+        // check all collisions
+        gameObjects.objects.filter(x => x.hasOwnProperty('collider')).map(x => x.collider.checkCollision());
+
+        // remove everything that needs to be removed
+        var removableObjects = gameObjects.objects.filter(x => x.removeFromGameObjects);
+        if (removableObjects.length > 0) {
+            removableObjects.map(x => gameObjects.removeObject(x));
+            this.renderer.setIsDirty();
+        }
+
+        this.renderer.checkRedraw();
+    }
 }
 
-class TreasureHuntGame {
+class Renderer {
+    constructor(viewW, viewH) {
+        this.viewport = new Rectangle(0, 0, viewW, viewH);
+        this.isDirty = true;
+    }
+
+    clearScreen() {
+        // clear the screen and set cursor at 0,0
+        console.clear();
+    }
+
+    isOnScreen(character) {
+        return character.isVisible && character.getBounds().intersects(this.viewport);
+    }
+
+    render() {
+        var output = '';
+        var renderableObjects = this.getRenderableObjectsOnScreen();
+        for (var row = this.viewport.y; row < this.viewport.y + this.viewport.height; row++) {
+            for (var col = this.viewport.x; col < this.viewport.x + this.viewport.width; col++) {
+                var characters = renderableObjects.filter(c => c.getCharacter).map(c => c.getCharacter(row, col)).filter(c => c != null);
+                if (characters.length > 0) {
+                    output = output + characters[0];
+                } else {
+                    output = output + ' ';
+                }
+            }
+            output = output + '\n';
+        }
+
+        console.log(output);
+
+        // clear the redraw flag on all objects we were able to render
+        renderableObjects.map(c => c.needsRedraw = false);
+    }
+
+    getIsDirty() {
+        return this.isDirty;
+        
+    }
+
+    setIsDirty() {
+        this.isDirty = true;
+    }
+
+    checkRedraw() {
+        if (this.getRenderableObjectsOnScreen().filter(c => c.needsRedraw).length > 0) {
+            this.setIsDirty();
+        }
+    }
+
+    getRenderableObjectsOnScreen() {
+        var that = this;
+        var renderable = gameObjects.objects.filter(c => c.isVisible && 
+                                                    that.isOnScreen(c));
+        return renderable;
+    }
+
+    centerViewportOn(character, map) {
+        this.viewport.x = Math.min(map.width - this.viewport.width, Math.max(0, character.getX() - (this.viewport.width / 2)));
+        this.viewport.y = Math.min(map.height - this.viewport.height, Math.max(0, character.getY() - (this.viewport.height / 2)));
+    }
+}
+
+class Collider {
+    constructor(parentObject) {
+        this.parentObject = parentObject;
+    }
+
+    checkCollision() {
+        var parent = this.parentObject;
+        var collisionObjects = gameObjects.objects.filter(obj => obj !== parent &&
+                                                          obj.collide && 
+                                                          obj.getBounds().intersects(parent.getBounds()));
+        if (collisionObjects.length > 0) {
+            collisionObjects.map(obj => obj.collide(parent));
+        }
+    }
+}
+
+class Character {
+    constructor(initialX, initialY) {
+        this.initialX = initialX;
+        this.initialY = initialY;
+        this.bounds = new Rectangle(initialX, initialY, 1, 1);
+        this.isVisible = true;
+        this.needsRedraw = true;
+        this.obeysPhysics = false;
+        this.removeFromGameObjects = false;
+        this.animationListeners = [];
+        this.children = [];
+    }
+
+    getX() {
+        return this.bounds.x;
+    }
+
+    getY() {
+        return this.bounds.y;
+    }
+
+    getBounds() {
+        return this.bounds;
+    }
+
+    getCharacter(row, col) {
+        return null;
+    }
+
+    onAnimated() {
+        this.needsRedraw = true;
+    }
+
+    update(timeNow, timeElapsed) {
+    }
+}
+
+class Thread {
+    constructor(functionPointer) {
+        this.functionPointer = functionPointer;
+    }
+
+    start(desiredFramerate) {
+        var that = this;
+        var minimumMillsecPerFrame = 1000/ desiredFramerate;
+
+        var internalRun = function() {
+            var now = Date.now();
+            that.functionPointer();
+            var after = Date.now();
+
+            // if the function call takes a while, reduce the delay until the next execute
+            var nextDelay = Math.max(0, minimumMillsecPerFrame - (after - now));
+            setTimeout(internalRun, nextDelay);
+        };
+
+        // initial call
+        setTimeout(internalRun, 0); 
+    }
+}
+
+class Rectangle {
+    constructor(x, y, width, height) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
+
+    intersectsPoint(x, y) {
+        if (x < this.x + this.width &&
+            x >= this.x &&
+            y < this.y + this.height &&
+            y >= this.y) {
+            return true;
+        }
+        return false;
+    }
+
+    intersects(rectangle) {
+        if (this.x + this.width <= rectangle.x ||
+            this.x >= rectangle.x + rectangle.width ||
+            this.y + this.height <= rectangle.y ||
+            this.y >= rectangle.y + rectangle.height) {
+            return false;
+        }
+        return true;
+    }
+}
+
+class TreasureHuntGame extends Game {
     constructor() {
         // set up basic game objects
-        this.game = new Game();
+        super();
+
         this.map = new Map(map1);
         this.keyMap = new KeyMap();
 
-        this.renderer = new Renderer(globalOptions['viewportWidth'], globalOptions['viewportHeight']);
         this.animationHandler = new AnimationHandler(this.renderer);
 
         this.STATE_RUNNING = 0;
@@ -254,6 +442,12 @@ class TreasureHuntGame {
 
         // this should probably turn into a state machine
         this.state = this.STATE_RUNNING;
+
+        this.EXPLOSION_SPEED = 2000; // num milliseconds between frames of WIN explosion     
+        
+        this.lastExplosionTime = Date.now();
+
+        this.resetLevelTime = -1;
     }
 
     getRandomMapPlacement(character, map) {
@@ -313,9 +507,9 @@ class TreasureHuntGame {
 
         /*this.door = new DoorwayCharacter(2, 2, function() {
             window.location.href = 'http://www.google.com';
-            });*/
+            });
 
-        gameObjects.addObject(this.door);
+            gameObjects.addObject(this.door);*/
         
         // center on the character
         this.renderer.centerViewportOn(this.character, this.map);
@@ -324,106 +518,94 @@ class TreasureHuntGame {
         this.renderer.render();
     }
 
-    initialize() {
-        var that = this;
+    // this is a blocking animation that 'explodes' the 
+    //...goal into an explosion
+    spawnExplosions(now, centeredCharacter) {
+        // spawn a new animation based on EXPLOSION_SPEED
+        if (now - this.lastExplosionTime > this.EXPLOSION_SPEED) {
+            this.animationHandler.addAnimation(new WinAnimation(centeredCharacter.getX(), centeredCharacter.getY(), this.map.width, this.map.height));
+            this.lastExplosionTime = now;
+        }
+    }
 
-        var EXPLOSION_SPEED = 2000; // num milliseconds between frames of WIN explosion     
-        
-        var lastExplosionTime = Date.now();
-        var lastBlinkTime = Date.now();
-        var resetLevelTime = -1;
+    checkDeadCondition() {
+        if (this.character.health <= 0) {
+            this.state = this.STATE_DEAD;
+            var x = this.character.getX();
+            var y = this.character.getY();
+            this.animationHandler.addAnimation(new WinAnimation(x, y, this.map.width, this.map.height));
+            this.animationHandler.addAnimation(new TextAnimaton(x, y, "DEAD"));
+            this.resetLevelTime = Date.now() + 6000;
+        }
+    }
+
+    checkWinCondition() {
+        if (this.character.getX() == this.goal.getX() && this.character.getY() == this.goal.getY()) {
+            this.state = this.STATE_WINNING;
+
+            this.animationHandler.addAnimation(new WinAnimation(this.goal.getX(), this.goal.getY(), this.map.width, this.map.height));
+            this.animationHandler.addAnimation(new TextAnimaton(this.goal.getX(), this.goal.getY(), "WIN"));
+
+            this.resetLevelTime = Date.now() + 6000;
+        }
+    }
+
+    handleInput() {
+       var key = this.getLastKeypress();
+       if (null !== key) {
+           var gameCommand = this.keyMap.getGameCommand(key.toString());
+
+           if (gameCommand == 'QUIT') {
+               process.exit();
+           } else if (this.state == this.STATE_RUNNING) {   
+               // update character movement
+               this.character.handleGameCommand(gameCommand);
+               this.renderer.centerViewportOn(this.character, this.map);
+           }
+       }
+    }
+
+    update(now, timeElapsed) {
+        super.update(now, timeElapsed);
+
+        if (this.state == this.STATE_RUNNING) {
+            this.checkWinCondition();
+            this.checkDeadCondition();
+        } else if (this.state == this.STATE_WINNING ||
+                   this.state == this.STATE_DEAD) {
+            // clear everything
+            gameObjects.removeAllObjects();
+                
+            // win/die condition
+            this.spawnExplosions(now, this.character);
+
+            if (this.resetLevelTime >= 0 && now > this.resetLevelTime) {
+                this.resetLevel();
+            }
+        }
+
+        // this currently adds all the characters to the renderer so it should be 
+        //...after the removeAllObjects() call above. Need to decide if this is
+        //...an update function or a draw function...
+        this.animationHandler.update(now, timeElapsed);
+    }
+
+    initialize() {
+        var that = this;        
 
         this.resetLevel();
 
-        // this is a blocking animation that 'explodes' the 
-        //...goal into an explosion
-        var spawnExplosions = function(now, centeredCharacter) {
-            // spawn a new animation based on EXPLOSION_SPEED
-            if (now - lastExplosionTime > EXPLOSION_SPEED) {
-                that.animationHandler.addAnimation(new WinAnimation(centeredCharacter.getX(), centeredCharacter.getY(), that.map.width, that.map.height));
-                lastExplosionTime = now;
-            }
-        };
-
-        var checkDeadCondition = function() {
-            if (that.character.health <= 0) {
-                that.state = that.STATE_DEAD;
-
-                that.animationHandler.addAnimation(new WinAnimation(that.character.getX(), that.character.getY(), that.map.width, that.map.height));
-                that.animationHandler.addAnimation(new TextAnimaton(that.character.getX(), that.character.getY(), "DEAD"));
-                resetLevelTime = Date.now() + 6000;
-            }
-        }
-
-        var checkWinCondition = function() {
-            if (that.character.getX() == that.goal.getX() && that.character.getY() == that.goal.getY()) {
-                that.state = that.STATE_WINNING;
-
-                that.animationHandler.addAnimation(new WinAnimation(that.goal.getX(), that.goal.getY(), that.map.width, that.map.height));
-                that.animationHandler.addAnimation(new TextAnimaton(that.goal.getX(), that.goal.getY(), "WIN"));
-
-                resetLevelTime = Date.now() + 6000;
-            }
-        }
-
         var lastUpdate = Date.now();
-
-        var update = function () {
+        var updateFunc = function () {
             var now = Date.now();
             var timeElapsed = now - lastUpdate;
             lastUpdate = now;
-            var key = that.game.getLastKeypress();
-            
-            if (null !== key) {
-                var gameCommand = that.keyMap.getGameCommand(key.toString());
 
-                if (gameCommand == 'QUIT') {
-                    process.exit();
-                } else if (that.state == that.STATE_RUNNING) {   
-                    // update character movement
-                    that.character.handleGameCommand(gameCommand);
-                    that.renderer.centerViewportOn(that.character, that.map);
-                }
-            }
-
-            if (that.state == that.STATE_RUNNING) {
-                // update everything
-                gameObjects.objects.map(x => x.update(now, timeElapsed));
-
-                // check all collisions
-                gameObjects.objects.filter(x => x.hasOwnProperty('collider')).map(x => x.collider.checkCollision());
-
-                // remove everything that needs to be removed
-                var removableObjects = gameObjects.objects.filter(x => x.removeFromGameObjects);
-                if (removableObjects.length > 0) {
-                   removableObjects.map(x => gameObjects.removeObject(x));
-                   that.renderer.setIsDirty();
-                }
-
-                that.renderer.checkRedraw();
-
-                checkWinCondition();
-                checkDeadCondition();
-            } else if (that.state == that.STATE_WINNING ||
-                       that.state == that.STATE_DEAD) {
-                // clear everything
-                gameObjects.removeAllObjects();
-                
-                // win/die condition
-                spawnExplosions(now, that.character);
-
-                if (resetLevelTime >= 0 && now > resetLevelTime) {
-                    that.resetLevel();
-                }
-            }
-
-            // this currently adds all the characters to the renderer so it should be 
-            //...after the removeAllObjects() call above. Need to decide if this is
-            //...an update function or a draw function...
-            that.animationHandler.update(now, timeElapsed);
+            that.handleInput();
+            that.update(now, timeElapsed);
         }
 
-        var draw = function() {
+        var drawFunc = function() {
             if (!that.renderer.getIsDirty()) {
                 return;
             }
@@ -433,7 +615,7 @@ class TreasureHuntGame {
             that.renderer.render();
         }
 
-        this.game.initialize(update, draw);
+        super.initialize(updateFunc, drawFunc);
     }
 
     drawHelp(characterSymbol) {
@@ -457,6 +639,7 @@ class Map {
         this.mapData = mapData;
         this.width = mapData[0].length;
         this.height = mapData.length;
+        this.characters = null;
     }
 
     getMapCharacters() {
@@ -480,72 +663,6 @@ class Map {
 
     getIsWall(x, y) {
         return this.getMapCharacters().filter(ch => ch.getBounds().intersectsPoint(x, y)).length > 0;
-    }
-}
-
-class Renderer {
-    constructor(viewW, viewH) {
-        this.viewport = new Rectangle(0, 0, viewW, viewH);
-        this.isDirty = true;
-    }
-
-    clearScreen() {
-        // clear the screen and set cursor at 0,0
-        console.clear();
-        //console.log("\u001b[2J\u001b[0;0H");
-        //process.stdout.write("\u001b[2J\u001b[0;0H");
-    }
-
-    isOnScreen(character) {
-        return character.isVisible && character.getBounds().intersects(this.viewport);
-    }
-
-    render() {
-        var output = '';
-        var renderableObjects = this.getRenderableObjectsOnScreen();
-        for (var row = this.viewport.y; row < this.viewport.y + this.viewport.height; row++) {
-            for (var col = this.viewport.x; col < this.viewport.x + this.viewport.width; col++) {
-                var characters = renderableObjects.filter(c => c.getCharacter).map(c => c.getCharacter(row, col)).filter(c => c != null);
-                if (characters.length > 0) {
-                    output = output + characters[0];
-                } else {
-                    output = output + ' ';
-                }
-            }
-            output = output + '\n';
-        }
-
-        console.log(output);
-
-        // clear the redraw flag on all objects we were able to render
-        renderableObjects.map(c => c.needsRedraw = false);
-    }
-
-    getIsDirty() {
-        return this.isDirty;
-        
-    }
-
-    setIsDirty() {
-        this.isDirty = true;
-    }
-
-    checkRedraw() {
-        if (this.getRenderableObjectsOnScreen().filter(c => c.needsRedraw).length > 0) {
-            this.setIsDirty();
-        }
-    }
-
-    getRenderableObjectsOnScreen() {
-        var that = this;
-        var renderable = gameObjects.objects.filter(c => c.isVisible && 
-                                                    that.isOnScreen(c));
-        return renderable;
-    }
-
-    centerViewportOn(character, map) {
-        this.viewport.x = Math.min(map.width - this.viewport.width, Math.max(0, character.getX() - (this.viewport.width / 2)));
-        this.viewport.y = Math.min(map.height - this.viewport.height, Math.max(0, character.getY() - (this.viewport.height / 2)));
     }
 }
 
@@ -652,59 +769,6 @@ class Sprite {
         }
 
         return null;
-    }
-}
-
-class Collider {
-    constructor(parentObject) {
-        this.parentObject = parentObject;
-    }
-
-    checkCollision() {
-        var parent = this.parentObject;
-        var collisionObjects = gameObjects.objects.filter(obj => obj !== parent &&
-                                                          obj.collide && 
-                                                          obj.getBounds().intersects(parent.getBounds()));
-        if (collisionObjects.length > 0) {
-            collisionObjects.map(obj => obj.collide(parent));
-        }
-    }
-}
-
-class Character {
-    constructor(initialX, initialY) {
-        this.initialX = initialX;
-        this.initialY = initialY;
-        this.bounds = new Rectangle(initialX, initialY, 1, 1);
-        this.isVisible = true;
-        this.needsRedraw = true;
-        this.obeysPhysics = false;
-        this.removeFromGameObjects = false;
-        this.animationListeners = [];
-        this.children = [];
-    }
-
-    getX() {
-        return this.bounds.x;
-    }
-
-    getY() {
-        return this.bounds.y;
-    }
-
-    getBounds() {
-        return this.bounds;
-    }
-
-    getCharacter(row, col) {
-        return null;
-    }
-
-    onAnimated() {
-        this.needsRedraw = true;
-    }
-
-    update(timeNow, timeElapsed) {
     }
 }
 
@@ -1002,60 +1066,6 @@ class ProjectileCharacter extends Character {
             this.travelCounter = this.travelCounter - this.travelSpeed;
             this.think();
         }
-    }
-}
-
-
-class Thread {
-    constructor(functionPointer) {
-        this.functionPointer = functionPointer;
-    }
-
-    start(desiredFramerate) {
-        var that = this;
-        var minimumMillsecPerFrame = 1000/ desiredFramerate;
-
-        var internalRun = function() {
-            var now = Date.now();
-            that.functionPointer();
-            var after = Date.now();
-
-            // if the function call takes a while, reduce the delay until the next execute
-            var nextDelay = Math.max(0, minimumMillsecPerFrame - (after - now));
-            setTimeout(internalRun, nextDelay);
-        };
-
-        // initial call
-        setTimeout(internalRun, 0); 
-    }
-}
-
-class Rectangle {
-    constructor(x, y, width, height) {
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-    }
-
-    intersectsPoint(x, y) {
-        if (x < this.x + this.width &&
-            x >= this.x &&
-            y < this.y + this.height &&
-            y >= this.y) {
-            return true;
-        }
-        return false;
-    }
-
-    intersects(rectangle) {
-        if (this.x + this.width <= rectangle.x ||
-            this.x >= rectangle.x + rectangle.width ||
-            this.y + this.height <= rectangle.y ||
-            this.y >= rectangle.y + rectangle.height) {
-            return false;
-        }
-        return true;
     }
 }
 
