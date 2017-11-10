@@ -1,33 +1,12 @@
 "use strict";
 
-var map1 = [
-"|------------------------------------------------------------------------------------------------------------------------|",
-"|                                                                                                                        |",
-"|         __                                                                                                             |",
-"|       _/  |_                                                     ___                                                   |",
-"|      /______\\                   __                            __/   \\                                                  |",
-"|                           __   /  \\                          /       \\                                                 |",
-"|                          /  \\_/    \\                        |_________\\                                                |",
-"|                        _/           \\                                                                                  |",
-"|      ___              /              \\                                                                                 |",
-"|     /___\\          __/                \\                                                                                |",
-"|                   /____________________\\                  ______________                                               |",
-"|                                                          /              \\______                                        |",
-"|                                                         /______________________\\                                       |",
-"|                                                                                                                        |",
-"|                                                                                                                        |",
-"|                                                                                                                        |",
-"|                                                                                                                        |",
-"|------------------------------------------------------------------------------------------------------------------------|"
-];
-
 // Options that control the flow of the game
 var globalOptions = {
     'playInBrowser': true,
     'drawFPS': 10,
     'updateFPS': 10,
-    'viewportWidth': 30,
-    'viewportHeight': 10,
+    'viewportWidth': 50,
+    'viewportHeight': 18,
     'numEnemies': 10
 };
 
@@ -431,7 +410,7 @@ class TreasureHuntGame extends Game {
         // set up basic game objects
         super();
 
-        this.map = new Map(map1);
+        this.map = new Map(LEVEL_TOWN);
         this.keyMap = new KeyMap();
 
         this.animationHandler = new AnimationHandler(this.renderer);
@@ -477,7 +456,7 @@ class TreasureHuntGame extends Game {
     createEnemy(character, map) {
         // create enemies
         var enemyPlacement = this.getRandomMapPlacement(character, map);
-        return new EnemyCharacter(enemyPlacement.x, enemyPlacement.y);
+        return new EnemyCharacter(enemyPlacement.x, enemyPlacement.y, ENEMY_SPIKEY_SPRITE_MAP);
     }
     
     resetLevel() {
@@ -611,7 +590,7 @@ class TreasureHuntGame extends Game {
             }
 
             that.renderer.clearScreen();
-            that.drawHelp(that.character.getCharacter());
+            //that.drawHelp(that.character.getCharacter());
             that.renderer.render();
         }
 
@@ -637,8 +616,8 @@ class TreasureHuntGame extends Game {
 class Map {
     constructor(mapData) {
         this.mapData = mapData;
-        this.width = mapData[0].length;
-        this.height = mapData.length;
+        this.width = mapData.width;
+        this.height = mapData.height;
         this.characters = null;
     }
 
@@ -648,14 +627,33 @@ class Map {
         }
 
         this.characters = [];
-        for (var row = 0; row < this.height; row++) {
-            var rowStr = this.mapData[row];    
-            for (var col = 0; col < rowStr.length; col++) {
-                var thisChar = rowStr.charAt(col);
-                if (thisChar != ' ') {
-                    this.characters.push(new WallCharacter(col, row, thisChar));
+
+        // add all of the objects within the level
+        for (var i = 0; i < this.mapData.map_objects.length; i++) {
+            var obj = this.mapData.map_objects[i];
+            for (var row = 0; row < obj.image.length; row++) {
+                var y = row + obj.y;
+                var rowStr = obj.image[row];
+                for (var col = 0; col < rowStr.length; col++) {
+                    var x = obj.x + col;
+                    var thisChar = rowStr.charAt(col);
+                    if (thisChar != ' ') {
+                        this.characters.push(new WallCharacter(x, y, thisChar));
+                    }
                 }
             }
+        }
+
+        // add in left/right level barriers
+        for (var y = 0; y < this.height; y++) {
+            this.characters.push(new WallCharacter(0, y, "|"));
+            this.characters.push(new WallCharacter(this.width - 1, y, "|"));
+        }
+
+        // add in top/bottom level barriers
+        for (var x = 0; x < this.width; x++) {
+            this.characters.push(new WallCharacter(x, 0, "-"));
+            this.characters.push(new WallCharacter(x, this.height - 1, "-"));
         }
 
         return this.characters;
@@ -960,20 +958,15 @@ class PlayerCharacter extends Character {
     }
 }
 
+
+
 class EnemyCharacter extends Character {
-    constructor(initialX, initialY) {
+    constructor(initialX, initialY, spriteMap) {
         super(initialX, initialY);
         this.isVisible = true;
         this.obeysPhysics = true;
         this.thinkCounter = 0;
         this.thinkSpeed = (1 / 1.0) * 1000;
-        var spriteMap = {
-            "0": [
-        { "displayTime": 910, "characters": ['0'] },
-        { "displayTime": 150, "characters": ['o'] },
-        { "displayTime": 130, "characters": ['.'] },
-        { "displayTime": 150, "characters": ['o'] } ]
-        };
         this.sprite = new Sprite(spriteMap, this);
         this.movable = new Movable(this);
 
@@ -1109,5 +1102,88 @@ class KeyMap {
         }
     }
 }
+
+var ENEMY_SPIKEY_FRAME_1 = [
+"<..>"
+];
+
+var ENEMY_SPIKEY_FRAME_2 = [
+"<-oo->"
+];
+
+var ENEMY_SPIKEY_FRAME_3 = [
+"  \\ /",
+"<--00-->",
+"  /  \\",
+];
+
+var ENEMY_SPIKEY_SPRITE_MAP = {
+"0": [
+    { "displayTime": 910, "characters": ENEMY_SPIKEY_FRAME_1 },
+    { "displayTime": 90, "characters": ENEMY_SPIKEY_FRAME_2 },
+    { "displayTime": 430, "characters": ENEMY_SPIKEY_FRAME_3 },
+    { "displayTime": 90, "characters": ENEMY_SPIKEY_FRAME_2 } ]
+};
+
+var MAP_HOUSE = [
+"     _________      ",
+"   _/         \\_   ",
+" _/             \\_ ",
+"/_________________\\",
+" |               |  ",
+" |     =====     |  ",
+" | |+|  | |  |+| |  ",
+" |______| |______|  ",
+];
+
+var MAP_BUSH = [
+" ### ",
+"#####",
+" ### ",
+];
+
+var MAP_TREE = [
+"   (**)       ",
+" (******)  ",
+"(********) ",
+"  (****)  ",
+"    ||    ",
+"    ||    ",
+"   /__\\  ",
+];
+
+var LEVEL_TOWN = {
+"width": 122,
+"height": 60,
+"map_objects": [
+    { "image": MAP_HOUSE, "x": 10, "y": 10 },
+    { "image": MAP_TREE, "x": 37, "y": 13 },
+    { "image": MAP_TREE, "x": 28, "y": 12 },
+    { "image": MAP_TREE, "x": 32, "y": 10 },
+    { "image": MAP_TREE, "x": 38, "y": 9 },
+
+    { "image": MAP_TREE, "x": 90, "y": 18 },
+    { "image": MAP_HOUSE, "x": 100, "y": 16 },
+
+    { "image": MAP_TREE, "x": 50, "y": 22 },
+    { "image": MAP_HOUSE, "x": 60, "y": 20 },
+    { "image": MAP_TREE, "x": 78, "y": 23 },
+
+    { "image": MAP_TREE, "x": 70, "y": 42 },
+    { "image": MAP_HOUSE, "x": 80, "y": 40 },
+
+    { "image": MAP_HOUSE, "x": 20, "y": 80 },
+    
+    { "image": MAP_TREE, "x": 16, "y": 40 },
+    { "image": MAP_TREE, "x": 28, "y": 40 },
+    { "image": MAP_TREE, "x": 11, "y": 38 },
+    { "image": MAP_TREE, "x": 14, "y": 36 },
+    { "image": MAP_TREE, "x": 10, "y": 36 },
+    { "image": MAP_TREE, "x": 28, "y": 36 },
+    { "image": MAP_TREE, "x": 16, "y": 32 },
+    { "image": MAP_TREE, "x": 30, "y": 32 },
+    
+]
+};
 
 run();
