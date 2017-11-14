@@ -590,7 +590,7 @@ class TreasureHuntGame extends Game {
             }
 
             that.renderer.clearScreen();
-            //that.drawHelp(that.character.getCharacter());
+            that.drawHelp(that.character.getCharacter());
             that.renderer.render();
         }
 
@@ -598,7 +598,8 @@ class TreasureHuntGame extends Game {
     }
 
     drawHelp(characterSymbol) {
-        var output = 'Instructions: Use Firefox or Chrome (Firefox reduces flickering!)\n';
+        var output = 'Use Firefox to play if you aren\'t already!!\n'
+        /*var output = 'Instructions: Use Firefox or Chrome (Firefox reduces flickering!)\n';
         output = output + 'Break out the dev tools into a separate window and then click on my actual web page to enable controls.\n\n';
         output = output + 'Use your "' + characterSymbol + '" character and go find the treasure ($) but watch out for bad guys...\n\n'; 
         output = output + '| Control  | Action |\n';
@@ -608,7 +609,7 @@ class TreasureHuntGame extends Game {
         output = output + '| d        | Right  |\n';
         output = output + '| s        | Down   |\n';
         output = output + '| a        | Left   |\n';
-        output = output + '| c        | Quit   |\n';
+        output = output + '| c        | Quit   |\n';*/
         console.log(output);
     }
 }
