@@ -5,8 +5,8 @@ var globalOptions = {
     'playInBrowser': true,
     'drawFPS': 10,
     'updateFPS': 10,
-    'viewportWidth': 50,
-    'viewportHeight': 18,
+    'viewportWidth': 40,
+    'viewportHeight': 14,
     'numEnemies': 10
 };
 
@@ -692,11 +692,11 @@ class Sprite {
             this.parentObject.onAnimated();
         }
 
-        this.calculateSize();
+        //this.calculateSize();
     }
 
     calculateSize() {
-        var sprites = this.spriteMap[this.state];
+        var sprites = this.spriteMap.states[this.state];
         var frame = this.frame;
         var characterRows = sprites[frame]["characters"];
 
@@ -734,7 +734,7 @@ class Sprite {
     }
 
     calculateCurrentFrame() {
-        var sprites = this.spriteMap[this.state];
+        var sprites = this.spriteMap.states[this.state];
         var totalTime = sprites.reduce(function(accumulator, currentValue) { return accumulator + currentValue["displayTime"]; }, 0);
         var leftover = this.stateElapsed % totalTime;
         var frame = 0;
@@ -751,19 +751,52 @@ class Sprite {
         return frame;
     }
 
-    getCharacter(row, col) {
-        var sprites = this.spriteMap[this.state];
+    getAnchoredX() {
+        var sprites = this.spriteMap.states[this.state];
         var frame = this.frame;
-        var ourRow = row - this.parentObject.getY();
-        var ourCol = col - this.parentObject.getX();
         var characterRows = sprites[frame]["characters"];
 
-        if (ourRow >= 0 && ourCol >= 0 && 
-            characterRows.length > ourRow && characterRows[ourRow].length > ourCol) {
-            var symbol = characterRows[ourRow].charAt(ourCol);
-            if (symbol != ' ') {
-                return symbol;
-            }
+        // Remove any notion of the map location and localize to this sprite only
+        var ourCol = this.parentObject.getX();
+        if (this.spriteMap.anchor == "center") {
+            ourCol = ourCol - Math.floor(characterRows[0].length / 2);
+        }
+
+        return ourCol;
+    }
+
+    getAnchoredY() {
+        var sprites = this.spriteMap.states[this.state];
+        var frame = this.frame;
+        var characterRows = sprites[frame]["characters"];
+
+        // Remove any notion of the map location and localize to this sprite only
+        var ourRow = this.parentObject.getY();
+
+        if (this.spriteMap.anchor == "center" && characterRows.length > 1) {
+            ourRow = ourRow - Math.floor(characterRows.length / 2);
+        }
+
+        return ourRow;
+    }
+
+    getCharacter(row, col) {
+        var sprites = this.spriteMap.states[this.state];
+        var frame = this.frame;
+        var characterRows = sprites[frame]["characters"];
+
+        // Remove any notion of the map location and localize to this sprite only
+        var ourRow = row - this.getAnchoredY();
+        var ourCol = col - this.getAnchoredX();
+
+        if (ourRow >= 0 && 
+            ourCol >= 0 && 
+            ourRow < characterRows.length &&
+            ourCol < characterRows[ourRow].length) {
+                var symbol = characterRows[ourRow].charAt(ourCol);
+                if (symbol != ' ') {
+                    return symbol;
+                }
         }
 
         return null;
@@ -903,13 +936,7 @@ class PlayerCharacter extends Character {
         this.isVisible = true;
         this.obeysPhysics = true;
 
-        var spriteMap = {};
-        spriteMap[FACING_LEFT] = [{ "displayTime": 999999, "characters": ['\u25C1'] }];
-        spriteMap[FACING_UP] = [{ "displayTime": 999999, "characters": ['\u25B3'] }];
-        spriteMap[FACING_RIGHT] = [{ "displayTime": 999999, "characters": ['\u25B7'] }];
-        spriteMap[FACING_DOWN] = [{ "displayTime": 999999, "characters": ['\u25BD'] }];
-
-        this.sprite = new Sprite(spriteMap, this);
+        this.sprite = new Sprite(PLAYER_SPRITE_MAP, this);
         this.sprite.setState(FACING_DOWN);
         this.children.push(this.sprite);
 
@@ -946,14 +973,7 @@ class PlayerCharacter extends Character {
     }
 
     fireProjectile() {
-        // set up projectile sprite
-        var spriteMap = {};
-        spriteMap[FACING_LEFT] = [{ "displayTime": 999999, "characters": ['\u25C0'] }];
-        spriteMap[FACING_UP] = [{ "displayTime": 999999, "characters": ['\u25B2'] }];
-        spriteMap[FACING_RIGHT] = [{ "displayTime": 999999, "characters": ['\u25B6'] }];
-        spriteMap[FACING_DOWN] = [{ "displayTime": 999999, "characters": ['\u25BC'] }];
-
-        var projectile = new ProjectileCharacter(this.getX(), this.getY(), this.movable.facing, 8, spriteMap);
+        var projectile = new ProjectileCharacter(this.getX(), this.getY(), this.movable.facing, 8, PROJECTILE_SPRITE_MAP);
         gameObjects.addObject(projectile);
     }
 }
@@ -1004,7 +1024,7 @@ class EnemyCharacter extends Character {
         this.thinkCounter = this.thinkCounter + timeElapsed;
 
         if (this.thinkCounter > this.thinkSpeed) {
-            this.thinkCounter = this.thinkCounter - this.thinkSpeed;
+            this.thinkCounter = this.thinkCounter % this.thinkSpeed;
             this.think();
         }
     }
@@ -1112,18 +1132,39 @@ var ENEMY_SPIKEY_FRAME_2 = [
 ];
 
 var ENEMY_SPIKEY_FRAME_3 = [
-"  \\ /",
+"  \\  /  ",
 "<--00-->",
 "  /  \\",
 ];
 
 var ENEMY_SPIKEY_SPRITE_MAP = {
-"0": [
-    { "displayTime": 910, "characters": ENEMY_SPIKEY_FRAME_1 },
-    { "displayTime": 90, "characters": ENEMY_SPIKEY_FRAME_2 },
-    { "displayTime": 430, "characters": ENEMY_SPIKEY_FRAME_3 },
-    { "displayTime": 90, "characters": ENEMY_SPIKEY_FRAME_2 } ]
+    "anchor": "center",
+    "states": {
+        "0": [
+            { "displayTime": 910, "characters": ENEMY_SPIKEY_FRAME_1 },
+            { "displayTime": 90, "characters": ENEMY_SPIKEY_FRAME_2 },
+            { "displayTime": 430, "characters": ENEMY_SPIKEY_FRAME_3 },
+            { "displayTime": 90, "characters": ENEMY_SPIKEY_FRAME_2 } ]
+    }
 };
+
+var PROJECTILE_SPRITE_MAP = {
+    "anchor": "center",
+    "states": {}
+};
+PROJECTILE_SPRITE_MAP.states[FACING_LEFT] = [{ "displayTime": 999999, "characters": ['\u25C2'] }];
+PROJECTILE_SPRITE_MAP.states[FACING_UP] = [{ "displayTime": 999999, "characters": ['\u25B4'] }];
+PROJECTILE_SPRITE_MAP.states[FACING_RIGHT] = [{ "displayTime": 999999, "characters": ['\u25B8'] }];
+PROJECTILE_SPRITE_MAP.states[FACING_DOWN] = [{ "displayTime": 999999, "characters": ['\u25BE'] }];
+
+var PLAYER_SPRITE_MAP = {
+    "anchor": "center",
+    "states": {}
+};
+PLAYER_SPRITE_MAP.states[FACING_LEFT] = [{ "displayTime": 999999, "characters": ['\u25C1'] }];
+PLAYER_SPRITE_MAP.states[FACING_UP] = [{ "displayTime": 999999, "characters": ['\u25B3'] }];
+PLAYER_SPRITE_MAP.states[FACING_RIGHT] = [{ "displayTime": 999999, "characters": ['\u25B7'] }];
+PLAYER_SPRITE_MAP.states[FACING_DOWN] = [{ "displayTime": 999999, "characters": ['\u25BD'] }];
 
 var MAP_HOUSE = [
 "     _________      ",
