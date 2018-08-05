@@ -1,8 +1,11 @@
 import {Rectangle} from "./rectangle.js";
+import {Updateable} from "./updateable.js";
 
 // Base class for every type of renderable game object
-export class Character {
+export class Character extends Updateable {
     constructor(initialX, initialY) {
+        super();
+        
         this.initialX = initialX;
         this.initialY = initialY;
         this.bounds = new Rectangle(initialX, initialY, 1, 1);
@@ -34,9 +37,6 @@ export class Character {
 
     onAnimated() {
         this.needsRedraw = true;
-    }
-
-    update(timeNow, timeElapsed) {
     }
 
     collide(withObject) {

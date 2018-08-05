@@ -1,10 +1,10 @@
-export class Collider {
-    constructor(parentObject) {
-        this.parentObject = parentObject;
-    }
+import {Updateable} from "./updateable.js";
 
-    update(timeNow, timeElapsed) {
-        // do nothing? This is needed if we are in gameObjects
+export class Collider extends Updateable {
+    constructor(parentObject) {
+        super();
+        
+        this.parentObject = parentObject;
     }
 
     checkCollision(gameObjects) {

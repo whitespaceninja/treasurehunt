@@ -1,14 +1,12 @@
 import {FACING_UP, FACING_DOWN, FACING_LEFT, FACING_RIGHT} from "./facing.js";
-import {Rectangle} from "./rectangle.js";
+import {Updateable} from "./updateable.js";
 
-export class Movable {
+export class Movable extends Updateable {
     constructor(parentObject) {
+        super();
+        
         this.parentObject = parentObject;
         this.facing = FACING_DOWN;
-    }
-
-    update(timeNow, timeElapsed) {
-        // do nothing?
     }
 
     setFacing(newFacing) {
