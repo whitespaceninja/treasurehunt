@@ -41,6 +41,9 @@ export class KeyMap {
         case 'h':
         case '72':
             return 'HELP';
+        
+        case '13':
+            return 'ENTER';
         }
     }
 }
