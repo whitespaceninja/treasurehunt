@@ -10,6 +10,8 @@ import {Map} from "./map.js";
 import {randomNumber} from "./math_extensions.js";
 import {TreasureCharacter} from "./treasure_character.js";
 import {Menu} from "./menu.js";
+import {ACTION_BACK_TO_GAME, ACTION_POP_MENU, ACTION_PUSH_MENU} from "./menu_actions.js";
+import {HELP_MENU} from "./menu_specs.js";
 
 // Options that control the flow of the game
 var globalOptions = {
@@ -35,11 +37,12 @@ export class TreasureHuntGame extends Game {
 
         this.map = new Map(LEVEL_TOWN);
         this.keyMap = new KeyMap();
+        this.menuStack = [];
 
         this.STATE_RUNNING = 0;
         this.STATE_WINNNING = 1;
         this.STATE_DEAD = 2;
-        this.STATE_HELP = 3;
+        this.STATE_MENU = 3;
 
         // this should probably turn into a state machine
         this.state = this.STATE_RUNNING;
@@ -156,30 +159,49 @@ export class TreasureHuntGame extends Game {
             var gameCommand = this.keyMap.getGameCommand(key.toString());
 
             if (gameCommand == 'QUIT') {
-               process.exit();
-            } else if (gameCommand == 'HELP') {
-                if (this.state != this.STATE_HELP) {
-                    // push menu state on
-                    this.prevState = this.state;
-                    this.state = this.STATE_HELP;
-                    this.menu = new Menu(this.renderer.viewport, 'Use Firefox to play if you aren\'t already!!');
-                    this.menu.show(gameObjects);
+                // TODO: bring up a QUIT menu. process.exit() doesn't work in browser
+                //process.exit();
+            } else if (this.state == this.STATE_RUNNING) {   
+                if (gameCommand == 'HELP') {
+                     // push menu state on
+                     this.prevState = this.state;
+                     this.state = this.STATE_MENU;
+                     this.menu = new Menu(HELP_MENU, this.renderer.viewport, 1);
+                     this.menu.show(gameObjects);
                 } else {
-                    // pop menu state off
+                    // update character movement
+                    this.character.handleGameCommand(gameCommand, gameObjects);
+                    this.renderer.centerViewportOn(this.character, this.map);
+                }
+            } else if (this.state == this.STATE_MENU) {
+                let actionObj = this.menu.handleInput(gameCommand);
+                if (actionObj.action == ACTION_BACK_TO_GAME) {
+                    // remove current menu and go back to game
                     this.state = this.prevState;
                     this.menu.hide(gameObjects);
                     this.menu = null;
+                } else if (actionObj.action == ACTION_PUSH_MENU) {
+                    // hide current menu and push it onto stack
+                    this.menu.hide(gameObjects);
+                    this.menuStack.push(this.menu);
+
+                    // show new menu
+                    this.menu = new Menu(actionObj.newMenu, this.renderer.viewport, 1);
+                    this.menu.show(gameObjects);
+                } else if (actionObj.action == ACTION_POP_MENU) {
+                    // hide current menu
+                    this.menu.hide(gameObjects);
+                    // pop prev menu and show it
+                    const prevMenu = this.menuStack.pop();
+                    this.menu = prevMenu;
+                    this.menu.show(gameObjects);
                 }
-            } else if (this.state == this.STATE_RUNNING) {   
-                // update character movement
-                this.character.handleGameCommand(gameCommand, gameObjects);
-                this.renderer.centerViewportOn(this.character, this.map);
             }
         }
     }
 
     update(now, timeElapsed, gameObjects) {
-        if (this.state == this.STATE_HELP) {
+        if (this.state == this.STATE_MENU) {
             // do nothing?
         } else {
             super.update(now, timeElapsed, gameObjects);
