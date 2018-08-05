@@ -1,0 +1,10 @@
+Create a chrome extension that grabs all of the links from a site and turns them into portals in the game!
+
+* Enemies
+** Turtles
+Resting : '\u2DBC'
+Animated head down: resting -> '\u2DB9' -> '\u2DB8' -> '\u2dBA'
+
+** Ghost
+Flying right: '\u2D87'
+Nothing for left yet
