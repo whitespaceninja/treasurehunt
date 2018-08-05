@@ -9,6 +9,7 @@ import {LEVEL_TOWN, ENEMY_SPIKEY_SPRITE_MAP} from "./treasure_hunt_art.js";
 import {Map} from "./map.js";
 import {randomNumber} from "./math_extensions.js";
 import {TreasureCharacter} from "./treasure_character.js";
+import {Menu} from "./menu.js";
 
 // Options that control the flow of the game
 var globalOptions = {
@@ -38,6 +39,7 @@ export class TreasureHuntGame extends Game {
         this.STATE_RUNNING = 0;
         this.STATE_WINNNING = 1;
         this.STATE_DEAD = 2;
+        this.STATE_HELP = 3;
 
         // this should probably turn into a state machine
         this.state = this.STATE_RUNNING;
@@ -71,12 +73,12 @@ export class TreasureHuntGame extends Game {
         return player;
     }
 
-    createGoal(character, map) {
+    createGoal(gameObjects, map) {
         var goalPlacement = this.getRandomMapPlacement(gameObjects, map);
         return new TreasureCharacter(goalPlacement.x, goalPlacement.y, '$', 'levelGoal');
     }
 
-    createEnemy(character, map) {
+    createEnemy(gameObjects, map) {
         // create enemies
         var enemyPlacement = this.getRandomMapPlacement(gameObjects, map);
         return new EnemyCharacter(enemyPlacement.x, enemyPlacement.y, ENEMY_SPIKEY_SPRITE_MAP);
@@ -94,11 +96,11 @@ export class TreasureHuntGame extends Game {
         gameObjects.addObject(this.character);
 
         // add a levelGoal to this level
-        gameObjects.addObject(this.createGoal(this.character, this.map));
+        gameObjects.addObject(this.createGoal(gameObjects, this.map));
 
         // add some enemies
         for (var i = 0; i < globalOptions['numEnemies']; i++) {
-            gameObjects.addObject(this.createEnemy(this.character, this.map));            
+            gameObjects.addObject(this.createEnemy(gameObjects, this.map));            
         }
 
         // add our map objects
@@ -128,8 +130,8 @@ export class TreasureHuntGame extends Game {
     }
 
     createInitialExplosion(x, y, text) {
-        this.animationHandler.addAnimation(new WinAnimation(x, y, this.map.width, this.map.height));
         this.animationHandler.addAnimation(new TextAnimaton(x, y, text));
+        this.animationHandler.addAnimation(new WinAnimation(x, y, this.map.width, this.map.height));
     }
 
     checkDeadCondition() {
@@ -149,36 +151,53 @@ export class TreasureHuntGame extends Game {
     }
 
     handleInput() {
-       var key = this.getLastKeypress();
-       if (null !== key) {
-           var gameCommand = this.keyMap.getGameCommand(key.toString());
+        var key = this.getLastKeypress();
+        if (null !== key) {
+            var gameCommand = this.keyMap.getGameCommand(key.toString());
 
-           if (gameCommand == 'QUIT') {
+            if (gameCommand == 'QUIT') {
                process.exit();
-           } else if (this.state == this.STATE_RUNNING) {   
-               // update character movement
-               this.character.handleGameCommand(gameCommand, gameObjects);
-               this.renderer.centerViewportOn(this.character, this.map);
-           }
-       }
+            } else if (gameCommand == 'HELP') {
+                if (this.state != this.STATE_HELP) {
+                    // push menu state on
+                    this.prevState = this.state;
+                    this.state = this.STATE_HELP;
+                    this.menu = new Menu(this.renderer.viewport, 'Use Firefox to play if you aren\'t already!!');
+                    this.menu.show(gameObjects);
+                } else {
+                    // pop menu state off
+                    this.state = this.prevState;
+                    this.menu.hide(gameObjects);
+                    this.menu = null;
+                }
+            } else if (this.state == this.STATE_RUNNING) {   
+                // update character movement
+                this.character.handleGameCommand(gameCommand, gameObjects);
+                this.renderer.centerViewportOn(this.character, this.map);
+            }
+        }
     }
 
     update(now, timeElapsed, gameObjects) {
-        super.update(now, timeElapsed, gameObjects);
+        if (this.state == this.STATE_HELP) {
+            // do nothing?
+        } else {
+            super.update(now, timeElapsed, gameObjects);
 
-        if (this.state == this.STATE_RUNNING) {
-            this.checkWinCondition();
-            this.checkDeadCondition();
-        } else if (this.state == this.STATE_WINNING ||
-                   this.state == this.STATE_DEAD) {
-            // win/die condition
-            this.spawnExplosions(now, this.character);
+            if (this.state == this.STATE_RUNNING) {
+                this.checkWinCondition();
+                this.checkDeadCondition();
+            } else if (this.state == this.STATE_WINNING ||
+                    this.state == this.STATE_DEAD) {
+                // win/die condition
+                this.spawnExplosions(now, this.character);
 
-            if (this.resetLevelTime >= 0 && now > this.resetLevelTime) {
-                this.resetLevel();
+                if (this.resetLevelTime >= 0 && now > this.resetLevelTime) {
+                    this.resetLevel();
+                }
+
+                this.animationHandler.update(now, timeElapsed, gameObjects);
             }
-
-            this.animationHandler.update(now, timeElapsed, gameObjects);
         }
     }
 
