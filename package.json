@@ -1,0 +1,25 @@
+{
+  "name": "treasurehunt",
+  "version": "1.0.0",
+  "description": "simple javascript console game",
+  "private": true,
+  "main": "src/treasure-hunt.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/whitespaceninja/treasurehunt.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/whitespaceninja/treasurehunt/issues"
+  },
+  "homepage": "https://github.com/whitespaceninja/treasurehunt#readme",
+  "devDependencies": {
+    "webpack": "^4.16.4",
+    "webpack-cli": "^3.1.0"
+  }
+}
