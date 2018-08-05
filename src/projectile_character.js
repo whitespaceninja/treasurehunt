@@ -2,6 +2,7 @@ import {Character} from "./character.js";
 import {Collider} from "./collider.js";
 import {Movable} from "./movable.js";
 import {Sprite} from "./sprite.js";
+import { WallCharacter } from "./wall_character.js";
 
 export class ProjectileCharacter extends Character {
     constructor(initialX, initialY, direction, maxDistance, spriteMap) {
@@ -45,6 +46,12 @@ export class ProjectileCharacter extends Character {
         if (this.travelCounter >= this.travelSpeed) {
             this.travelCounter = this.travelCounter - this.travelSpeed;
             this.think();
+        }
+    }
+
+    collide(withObject) {
+        if (withObject instanceof WallCharacter) {
+            this.removeFromGameObjects = true;
         }
     }
 }

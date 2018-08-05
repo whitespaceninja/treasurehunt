@@ -36,4 +36,7 @@ export class Character {
 
     update(timeNow, timeElapsed) {
     }
+
+    collide(withObject) {
+    }
 }

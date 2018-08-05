@@ -172,21 +172,15 @@ export class TreasureHuntGame extends Game {
             this.checkDeadCondition();
         } else if (this.state == this.STATE_WINNING ||
                    this.state == this.STATE_DEAD) {
-            // clear everything
-            gameObjects.removeAllObjects();
-                
             // win/die condition
             this.spawnExplosions(now, this.character);
 
             if (this.resetLevelTime >= 0 && now > this.resetLevelTime) {
                 this.resetLevel();
             }
-        }
 
-        // this currently adds all the characters to the renderer so it should be 
-        //...after the removeAllObjects() call above. Need to decide if this is
-        //...an update function or a draw function...
-        this.animationHandler.update(now, timeElapsed);
+            this.animationHandler.update(now, timeElapsed, gameObjects);
+        }
     }
 
     initialize(options) {

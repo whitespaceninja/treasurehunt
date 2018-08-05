@@ -13,10 +13,4 @@ export class WallCharacter extends Character {
         }
         return null;
     }
-
-    collide(withObject) {
-        if (withObject instanceof ProjectileCharacter) {
-            withObject.removeFromGameObjects = true;
-        }
-    }
 }

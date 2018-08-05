@@ -1,3 +1,5 @@
+import {StaticCharacter} from "./static_character.js";
+
 export class Animation {
     constructor() { }
 
@@ -105,6 +107,11 @@ export class AnimationHandler {
     }
 
     update(timeNow, timeElapsed, gameObjects) {
+        if (this.animations.length > 0) {
+            // clear everything (TODO: we shouldn't have to do this)
+            gameObjects.removeAllObjects();
+        }
+
         for (var i = this.animations.length - 1; i >= 0 ; i--) {
             var animation = this.animations[i];
             animation.update(timeNow, timeElapsed);
@@ -113,8 +120,8 @@ export class AnimationHandler {
                 // remove it from our list
                 this.animations.splice(i, 1);
             } else {
-                characters = this.animations[i].spawnRenderables();
-                if (characters !== null) {
+                const characters = this.animations[i].spawnRenderables();
+                if (characters != null && characters.length > 0) {
                     characters.map(x => gameObjects.addObject(x));
                 }
             }
