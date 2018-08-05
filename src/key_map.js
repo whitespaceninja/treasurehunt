@@ -37,6 +37,10 @@ export class KeyMap {
         case '70':
         case '32':
             return 'FIRE';
+
+        case 'h':
+        case '72':
+            return 'HELP';
         }
     }
 }

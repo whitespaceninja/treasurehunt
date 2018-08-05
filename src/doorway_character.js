@@ -6,6 +6,8 @@ export class DoorwayCharacter extends Character {
         super(initialX, initialY);
         this.onCollide = onCollide;
         this.collider = new Collider(this);
+
+        this.children.push(this.collider);
     }
 
     collide(withObject) {

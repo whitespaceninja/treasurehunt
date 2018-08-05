@@ -45,8 +45,4 @@ export class Map {
 
         return this.characters;
     }
-
-    getIsWall(x, y) {
-        return this.getMapCharacters().filter(ch => ch.getBounds().intersectsPoint(x, y)).length > 0;
-    }
 }

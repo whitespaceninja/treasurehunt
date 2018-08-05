@@ -1,6 +1,7 @@
 import {Thread} from "./thread.js";
 import {Renderer} from "./renderer.js";
 import {Rectangle} from "./rectangle.js";
+import {Collider} from "./collider.js";
 
 export class Game {
     constructor() {
@@ -75,7 +76,7 @@ export class Game {
         gameObjects.objects.filter(x => x.intendedPosition != null).map(x => this.handleMovement(x, x.intendedPosition, gameObjects));
 
         // check all collisions
-        gameObjects.objects.filter(x => x.hasOwnProperty('collider')).map(x => x.collider.checkCollision(gameObjects));
+        gameObjects.objects.filter(x => x instanceof Collider).map(x => x.checkCollision(gameObjects));
 
         // remove everything that needs to be removed
         var removableObjects = gameObjects.objects.filter(x => x.removeFromGameObjects);

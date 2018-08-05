@@ -1,14 +1,12 @@
 import {FACING_UP, FACING_DOWN, FACING_LEFT, FACING_RIGHT} from "./facing.js";
-import {Rectangle} from "./rectangle.js";
+import {Updateable} from "./updateable.js";
 
-export class Movable {
+export class Movable extends Updateable {
     constructor(parentObject) {
+        super();
+        
         this.parentObject = parentObject;
         this.facing = FACING_DOWN;
-    }
-
-    update(timeNow, timeElapsed) {
-        // do nothing?
     }
 
     setFacing(newFacing) {
@@ -22,27 +20,26 @@ export class Movable {
     move(direction) {
         var intendedX = this.parentObject.getX();
         var intendedY = this.parentObject.getY();
-        var dirty = false;
 
         switch(direction) {
         case FACING_LEFT: 
             intendedX--; 
-            dirty = this.setFacing(FACING_LEFT);
+            this.setFacing(FACING_LEFT);
             break;
 
         case FACING_RIGHT:
             intendedX++; 
-            dirty = this.setFacing(FACING_RIGHT);
+            this.setFacing(FACING_RIGHT);
             break;
 
         case FACING_UP:
             intendedY--; 
-            dirty = this.setFacing(FACING_UP);
+            this.setFacing(FACING_UP);
             break;
 
         case FACING_DOWN:
             intendedY++; 
-            dirty = this.setFacing(FACING_DOWN);
+            this.setFacing(FACING_DOWN);
             break;
 
         default:
@@ -50,28 +47,7 @@ export class Movable {
             return
         }
 
-        var that = this;
-
-        var isObstructed = false;
-
-        // if (this.parentObject.obeysPhysics) {
-        //     var newRect = new Rectangle(intendedX, intendedY, this.parentObject.getBounds().width, this.parentObject.getBounds().height);
-        //     isObstructed = gameObjects.objects.filter(c => 
-        //                                               c !== that.parentObject && 
-        //                                               c.isPhysical && 
-        //                                               c.getBounds().intersects(newRect)).length > 0;
-        // }
-
-        if (!isObstructed) {
-            this.parentObject.intendedPosition = {x: intendedX, y: intendedY};
-            //this.parentObject.getBounds().x = intendedX;
-            //this.parentObject.getBounds().y = intendedY;
-            // always trigger dirty when moving
-            dirty = true;
-        }
-
-        if (dirty) {
-            this.parentObject.onAnimated();
-        }
+        this.parentObject.intendedPosition = {x: intendedX, y: intendedY};
+        this.parentObject.onAnimated();        
     }
 }

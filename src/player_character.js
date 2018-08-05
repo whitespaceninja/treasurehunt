@@ -5,6 +5,7 @@ import {Movable} from "./movable.js";
 import {Collider} from "./collider.js";
 import {FACING_DOWN} from "./facing.js";
 import {Character} from "./character.js";
+import {TreasureCharacter} from "./treasure_character.js";
 import {PLAYER_SPRITE_MAP, PROJECTILE_SPRITE_MAP} from "./treasure_hunt_art.js";
 
 export class PlayerCharacter extends Character {
@@ -13,6 +14,7 @@ export class PlayerCharacter extends Character {
         this.health = 100;
         this.isVisible = true;
         this.obeysPhysics = true;
+        this.inventory = [];
 
         this.sprite = new Sprite(PLAYER_SPRITE_MAP, this);
         this.sprite.setState(FACING_DOWN);
@@ -21,8 +23,8 @@ export class PlayerCharacter extends Character {
         this.movable = new Movable(this);
         this.children.push(this.movable);
 
-        // TODO: add this to gameObjects?
         this.collider = new Collider(this);
+        this.children.push(this.collider);
     }
 
     onAnimated() {
@@ -34,6 +36,7 @@ export class PlayerCharacter extends Character {
         this.bounds.x = this.initialX;
         this.bounds.y = this.initialY;
         this.health = 100;
+        this.inventory = [];
     }
 
     handleGameCommand(command, gameObjects) {
@@ -48,10 +51,19 @@ export class PlayerCharacter extends Character {
         if (withObject instanceof EnemyCharacter) {
             this.health = 0;
         }
+
+        if (withObject instanceof TreasureCharacter) {
+            this.inventory.push(withObject.treasureType);
+            withObject.removeFromGameObjects = true;
+        }        
     }
 
     fireProjectile(gameObjects) {
         var projectile = new ProjectileCharacter(this.getX(), this.getY(), this.movable.facing, 8, PROJECTILE_SPRITE_MAP);
         gameObjects.addObject(projectile);
+    }
+
+    hasTreasure(treasureType) {
+        return this.inventory.filter(t => t == treasureType).length > 0;
     }
 }

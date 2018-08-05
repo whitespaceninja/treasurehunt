@@ -1,10 +1,14 @@
-export class Sprite {
+import {Updateable} from "./updateable.js";
+
+export class Sprite extends Updateable {
     // format of a spriteMap:
     // {
     //     "<state>": [{ "displayTime": <timeInMillisec>, "characters": [<row1string>, <row2string>, etc] },
     //                 { "displayTime": <timeInMillisec>, "characters": [<row1string>, <row2string>, etc] } ]
     // }
     constructor(spriteMap, parentObject) {
+        super();
+        
         this.spriteMap = spriteMap;
         this.parentObject = parentObject;
         this.state = 0;

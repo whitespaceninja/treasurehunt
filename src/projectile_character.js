@@ -26,8 +26,8 @@ export class ProjectileCharacter extends Character {
         this.children.push(this.movable);
 
         // check for collisions with objects
-        // TODO: add this to children?
         this.collider = new Collider(this);
+        this.children.push(this.collider);
     }
 
     think() {
