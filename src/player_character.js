@@ -23,8 +23,8 @@ export class PlayerCharacter extends Character {
         this.movable = new Movable(this);
         this.children.push(this.movable);
 
-        // TODO: add this to gameObjects?
         this.collider = new Collider(this);
+        this.children.push(this.collider);
     }
 
     onAnimated() {
