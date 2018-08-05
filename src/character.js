@@ -1,11 +1,13 @@
 import {Rectangle} from "./rectangle.js";
 
+// Base class for every type of renderable game object
 export class Character {
     constructor(initialX, initialY) {
         this.initialX = initialX;
         this.initialY = initialY;
         this.bounds = new Rectangle(initialX, initialY, 1, 1);
         this.isVisible = true;
+        this.isPhysical = false;
         this.needsRedraw = true;
         this.obeysPhysics = false;
         this.removeFromGameObjects = false;
