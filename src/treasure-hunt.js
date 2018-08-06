@@ -10,7 +10,7 @@ import {Map} from "./map.js";
 import {randomNumber} from "./math_extensions.js";
 import {TreasureCharacter} from "./treasure_character.js";
 import {Menu} from "./menu.js";
-import {ACTION_BACK_TO_GAME, ACTION_POP_MENU, ACTION_PUSH_MENU} from "./menu_actions.js";
+import {ACTION_INCREASE_VIEWPORT_H, ACTION_BACK_TO_GAME, ACTION_POP_MENU, ACTION_PUSH_MENU, ACTION_INCREASE_VIEWPORT_W} from "./menu_actions.js";
 import {HELP_MENU} from "./menu_specs.js";
 
 // Options that control the flow of the game
@@ -19,7 +19,11 @@ var globalOptions = {
     'drawFPS': 10,
     'updateFPS': 10,
     'viewportWidth': 40,
+    'minViewportWidth': 40,
+    'maxViewportWidth': 60,
     'viewportHeight': 14,
+    'minViewportHeight': 14,
+    'maxViewportHeight': 20,
     'numEnemies': 10
 };
 
@@ -194,6 +198,28 @@ export class TreasureHuntGame extends Game {
                     // pop prev menu and show it
                     const prevMenu = this.menuStack.pop();
                     this.menu = prevMenu;
+                    this.menu.show(gameObjects);
+                } else if (actionObj.action == ACTION_INCREASE_VIEWPORT_H || 
+                           actionObj.action == ACTION_INCREASE_VIEWPORT_W) {
+                    if (actionObj.action == ACTION_INCREASE_VIEWPORT_H) {
+                        // currently this breaks if we do it by an odd number
+                        this.renderer.viewport.height += 2;
+                        if (this.renderer.viewport.height > globalOptions['maxViewportHeight']) {
+                            this.renderer.viewport.height = globalOptions['minViewportHeight'];
+                        }
+                    } else {
+                        this.renderer.viewport.width += 4;
+                        if (this.renderer.viewport.width > globalOptions['maxViewportWidth']) {
+                            this.renderer.viewport.width = globalOptions['minViewportWidth'];
+                        }
+                    }
+
+                    // center viewport
+                    this.renderer.centerViewportOn(this.character, this.map);
+                    this.renderer.setIsDirty();
+
+                    // redraw menu
+                    this.menu.hide(gameObjects);
                     this.menu.show(gameObjects);
                 }
             }

@@ -18,12 +18,14 @@ export class Renderer {
     render(gameObjects) {
         var output = '';
         var renderableObjects = this.getRenderableObjectsOnScreen(gameObjects);
-        // reverse sort by z axis
+        // reverse sort by z axis, grab highest
         renderableObjects.sort((a, b) => b.z - a.z);
+        
         for (var row = this.viewport.y; row < this.viewport.y + this.viewport.height; row++) {
             for (var col = this.viewport.x; col < this.viewport.x + this.viewport.width; col++) {
                 var characters = renderableObjects.filter(c => c.getCharacter).map(c => c.getCharacter(row, col)).filter(c => c != null);
                 if (characters.length > 0) {
+                    
                     output = output + characters[0];
                 } else {
                     output = output + ' ';

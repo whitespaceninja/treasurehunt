@@ -87,8 +87,4 @@ export class Game {
 
         this.renderer.checkRedraw(gameObjects);
     }
-
-    bogus() {
-        
-    }
 }

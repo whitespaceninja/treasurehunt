@@ -19,8 +19,8 @@ export class Menu {
     setOptionVisibility() {
         // set the visibility of the selection arrows at the beginning of each line
         if (this.selectionCharacters.length > 0) {
-            this.selectionCharacters.map(c => c.isVisible = false);
-            this.selectionCharacters[this.selectedOption].isVisible = true;
+            this.selectionCharacters.map(c => c.symbol = ' ');
+            this.selectionCharacters[this.selectedOption].symbol = '-';
         }
     }
 
@@ -129,7 +129,7 @@ export class Menu {
 
                 if (row < numSummaryLines) {
                     const textPos = col + (row * wrapW);
-                    if (col < summaryTextLen) {
+                    if (textPos < summaryTextLen) {
                         char = summaryText[textPos];
                     }
                 } else if (row >= numSummaryLines + numSpacingLines) {
