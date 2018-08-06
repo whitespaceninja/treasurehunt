@@ -213,14 +213,14 @@ export class TreasureHuntGame extends Game {
                             this.renderer.viewport.width = globalOptions['minViewportWidth'];
                         }
                     }
-                    
-                    // redraw menu
-                    this.menu.hide(gameObjects);
-                    this.menu.show(gameObjects);
 
                     // center viewport
                     this.renderer.centerViewportOn(this.character, this.map);
                     this.renderer.setIsDirty();
+
+                    // redraw menu
+                    this.menu.hide(gameObjects);
+                    this.menu.show(gameObjects);
                 }
             }
         }
