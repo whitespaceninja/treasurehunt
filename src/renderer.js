@@ -25,7 +25,6 @@ export class Renderer {
             for (var col = this.viewport.x; col < this.viewport.x + this.viewport.width; col++) {
                 var characters = renderableObjects.filter(c => c.getCharacter).map(c => c.getCharacter(row, col)).filter(c => c != null);
                 if (characters.length > 0) {
-                    
                     output = output + characters[0];
                 } else {
                     output = output + ' ';
