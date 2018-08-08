@@ -190,7 +190,7 @@ export class TreasureHuntGame extends Game {
                     this.menuStack.push(this.menu);
 
                     // show new menu
-                    this.menu = new Menu(actionObj.newMenu, this.renderer.viewport, 1);
+                    this.menu = new Menu(actionObj.eventArgs.menu, this.renderer.viewport, 1);
                     this.menu.show(gameObjects);
                 } else if (actionObj.action == ACTION_POP_MENU) {
                     // hide current menu

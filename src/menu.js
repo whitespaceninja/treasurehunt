@@ -1,6 +1,7 @@
 import {StaticCharacter} from "./static_character";
 import {ACTION_BACK_TO_GAME, ACTION_NONE, ACTION_PUSH_MENU, ACTION_POP_MENU} from "./menu_actions.js";
 import {FACING_DOWN, FACING_UP} from "./facing.js";
+import {wrapText} from "./text_helpers.js";
 
 export class Menu {
     constructor(menuSpec, viewport, zPosition) {
@@ -26,7 +27,7 @@ export class Menu {
 
     handleInput(gameCommand) {
         let action = ACTION_NONE;
-        let newMenu = null;
+        let eventArgs = null;
 
         if (gameCommand == FACING_DOWN) {
             // scroll through menu options
@@ -46,13 +47,11 @@ export class Menu {
             let selectedAction = curOption.actionMap.filter(o => o.key == gameCommand);
             if (selectedAction.length > 0) {
                 action = selectedAction[0].action;
-                if (action == ACTION_PUSH_MENU) {
-                    newMenu = selectedAction[0].menu;
-                }
+                eventArgs = selectedAction[0].eventArgs;
             }
         }
 
-        return {action: action, newMenu: newMenu};
+        return {action: action, eventArgs: eventArgs};
     }
 
     // creates a character to render in the menu, and handles overhead for it
@@ -102,7 +101,8 @@ export class Menu {
         let start_y = bottom + Math.round(height * 0.8);
 
         // summary is text at top
-        const numSummaryLines = Math.ceil(summaryTextLen / wrapW);
+        const summaryTextRows = wrapText(summaryText, wrapW);
+        const numSummaryLines = summaryTextRows.length;
 
         // add blank line between
         const numSpacingLines = 1; 
@@ -128,9 +128,8 @@ export class Menu {
                 let isSelectionChar = false;
 
                 if (row < numSummaryLines) {
-                    const textPos = col + (row * wrapW);
-                    if (textPos < summaryTextLen) {
-                        char = summaryText[textPos];
+                    if (col < summaryTextRows[row].length) {
+                        char = summaryTextRows[row][col];
                     }
                 } else if (row >= numSummaryLines + numSpacingLines) {
                     const thisOptionIndex = row - numSummaryLines - numSpacingLines;

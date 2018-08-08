@@ -19,17 +19,44 @@ export const SETTINGS_MENU = {
     ]
 }
 
-export const HELP_MENU = {
-    type: 'OPTIONS',
-    summaryText: "Welcome to AsciiWeb! Firefox is the best browser for this game. Press 'h' to pause the game and Spacebar to FIRE.",
+export const CONTROLS_MENU = {
+    type: "OPTIONS",
+    summaryText: "CONTROLS\nMovement: Arrow keys\nFIRE: Spacebar\nPause: 'h'",
     options: [
         {
-            optionText: "Resume",
+            optionText: "Back",
+            actionMap: [{key: 'ENTER', action: ACTION_POP_MENU}]
+        }
+    ]
+}
+
+export const HELP_MENU = {
+    type: 'OPTIONS',
+    summaryText: "Welcome! Firefox is the best browser for this game. Click on the web page to capture key presses.",
+    options: [
+        {
+            optionText: "Play",
             actionMap: [{key: 'ENTER', action: ACTION_BACK_TO_GAME}]
         },
         {
+            optionText: "Controls",
+            actionMap: [{
+                key: 'ENTER', 
+                action: ACTION_PUSH_MENU, 
+                eventArgs: {
+                    menu: CONTROLS_MENU
+                }
+            }],
+        },
+        {
             optionText: "Options",
-            actionMap: [{key: 'ENTER', action: ACTION_PUSH_MENU, menu: SETTINGS_MENU}]
+            actionMap: [{
+                key: 'ENTER', 
+                action: ACTION_PUSH_MENU, 
+                eventArgs: {
+                    menu: SETTINGS_MENU
+                }
+            }],
         }
     ]
 }
