@@ -46,7 +46,7 @@ export class Character extends Updateable {
         return this.bounds;
     }
 
-    getCharacter(row, col) {
+    getCharacter(col, row) {
         return null;
     }
 

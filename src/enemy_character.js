@@ -34,7 +34,7 @@ export class EnemyCharacter extends Character {
             case 4: direction = FACING_UP; break;
         }
         
-        //this.movable.move(direction);
+        this.movable.move(direction);
     }
 
     update(timeNow, timeElapsed) {

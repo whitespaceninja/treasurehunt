@@ -121,6 +121,9 @@ export class TreasureHuntGame extends Game {
         // center on the character
         this.renderer.centerViewportOn(this.character, this.map);
 
+        // show help menu. this may change on new levels eventually
+        this.showHelpMenu();
+
         // first draw of render
         this.renderer.render(gameObjects);
     }
@@ -156,6 +159,14 @@ export class TreasureHuntGame extends Game {
         }
     }
 
+    showHelpMenu() {
+        // push menu state on
+        this.prevState = this.state;
+        this.state = this.STATE_MENU;
+        this.menu = new Menu(HELP_MENU, this.renderer.viewport, 1);
+        this.menu.show(gameObjects);
+    }
+
     handleInput() {
         var key = this.getLastKeypress();
         if (null !== key) {
@@ -166,11 +177,7 @@ export class TreasureHuntGame extends Game {
                 //process.exit();
             } else if (this.state == this.STATE_RUNNING) {   
                 if (gameCommand == 'HELP') {
-                     // push menu state on
-                     this.prevState = this.state;
-                     this.state = this.STATE_MENU;
-                     this.menu = new Menu(HELP_MENU, this.renderer.viewport, 1);
-                     this.menu.show(gameObjects);
+                    showHelpMenu();
                 } else {
                     // update character movement
                     this.character.handleGameCommand(gameCommand, gameObjects);

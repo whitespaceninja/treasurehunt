@@ -7,7 +7,7 @@ export class WallCharacter extends Character {
         this.isPhysical = true;
     }
 
-    getCharacter(row, col) {
+    getCharacter(col, row) {
         if (this.getX() == col && this.getY() == row) {
             return this.symbol;
         }

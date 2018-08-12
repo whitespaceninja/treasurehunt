@@ -23,7 +23,7 @@ export class Renderer {
         
         for (var row = this.viewport.y; row < this.viewport.y + this.viewport.height; row++) {
             for (var col = this.viewport.x; col < this.viewport.x + this.viewport.width; col++) {
-                var characters = renderableObjects.filter(c => c.getCharacter).map(c => c.getCharacter(row, col)).filter(c => c != null);
+                var characters = renderableObjects.filter(c => c.getCharacter).map(c => c.getCharacter(col, row)).filter(c => c != null);
                 if (characters.length > 0) {
                     output = output + characters[0];
                 } else {
