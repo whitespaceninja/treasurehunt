@@ -5,7 +5,7 @@ import {AnimationHandler, WinAnimation, TextAnimaton} from "./animations.js";
 import {PlayerCharacter} from "./player_character.js";
 import {EnemyCharacter} from "./enemy_character.js";
 import {GameObjects} from "./game_objects.js";
-import {LEVEL_TOWN, ENEMY_SPIKEY_SPRITE_MAP} from "./treasure_hunt_art.js";
+import {LEVEL_TOWN, ENEMY_TEST_SPRITE_MAP, ENEMY_SPIKEY_SPRITE_MAP} from "./treasure_hunt_art.js";
 import {Map} from "./map.js";
 import {randomNumber} from "./math_extensions.js";
 import {TreasureCharacter} from "./treasure_character.js";
@@ -64,8 +64,7 @@ export class TreasureHuntGame extends Game {
 
         // don't let them overlap
         while (gameObjects.objects.filter(obj => obj.isPhysical && 
-                                                 obj.getX() === x && 
-                                                 obj.getY() === y).length > 0) {
+                                                 obj.getBounds().intersectsPoint(x, y)).length > 0) {
             x = randomNumber(map.width - 1);
             y = randomNumber(map.height - 1);
         }
@@ -175,7 +174,6 @@ export class TreasureHuntGame extends Game {
                 } else {
                     // update character movement
                     this.character.handleGameCommand(gameCommand, gameObjects);
-                    this.renderer.centerViewportOn(this.character, this.map);
                 }
             } else if (this.state == this.STATE_MENU) {
                 let actionObj = this.menu.handleInput(gameCommand);
@@ -231,6 +229,7 @@ export class TreasureHuntGame extends Game {
             // do nothing?
         } else {
             super.update(now, timeElapsed, gameObjects);
+            this.renderer.centerViewportOn(this.character, this.map);
 
             if (this.state == this.STATE_RUNNING) {
                 this.checkWinCondition();
@@ -254,22 +253,30 @@ export class TreasureHuntGame extends Game {
 
         var lastUpdate = Date.now();
         var updateFunc = function () {
-            var now = Date.now();
-            var timeElapsed = now - lastUpdate;
-            lastUpdate = now;
+            try {
+                var now = Date.now();
+                var timeElapsed = now - lastUpdate;
+                lastUpdate = now;
 
-            that.handleInput();
-            that.update(now, timeElapsed, gameObjects);
+                that.handleInput();
+                that.update(now, timeElapsed, gameObjects);
+            } catch (err){
+                console.log(err.message);
+            }
         }
 
         var drawFunc = function() {
-            if (!that.renderer.getIsDirty()) {
-                return;
-            }
+            try {
+                if (!that.renderer.getIsDirty()) {
+                    return;
+                }
 
-            that.renderer.clearScreen();
-            that.drawHelp(that.character.getCharacter());
-            that.renderer.render(gameObjects);
+                that.renderer.clearScreen();
+                that.drawHelp(that.character.getCharacter());
+                that.renderer.render(gameObjects);
+            } catch (err){
+                console.log(err.message);
+            }
         }
 
         super.initialize(updateFunc, drawFunc, options);

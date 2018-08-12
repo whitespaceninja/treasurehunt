@@ -6,15 +6,16 @@ export class Sprite extends Updateable {
     //     "<state>": [{ "displayTime": <timeInMillisec>, "characters": [<row1string>, <row2string>, etc] },
     //                 { "displayTime": <timeInMillisec>, "characters": [<row1string>, <row2string>, etc] } ]
     // }
-    constructor(spriteMap, parentObject) {
+    constructor(spriteMap, parentObject, initialState) {
         super();
         
         this.spriteMap = spriteMap;
         this.parentObject = parentObject;
-        this.state = 0;
+        this.state = initialState;
         this.stateElapsed = 0;
         this.frame = 0;
         this.isVisible = true;
+        this.calculateSize();
     }
 
     getBounds() {
@@ -28,10 +29,8 @@ export class Sprite extends Updateable {
         this.frame = this.calculateCurrentFrame();
         if (this.frame != prevFrame) {
             this.parentObject.onAnimated();
+            this.calculateSize();
         }
-
-        // TODO: figure out a better way to do colliding with sprites
-        //this.calculateSize();
     }
 
     calculateSize() {
@@ -57,20 +56,35 @@ export class Sprite extends Updateable {
         }
 
         // TODO: this feels dirty
-        this.parentObject.getBounds().width = lastCol - firstCol + 1;
-        this.parentObject.getBounds().height = lastRow - firstRow + 1;
+        const newW = lastCol - firstCol + 1;
+        const newH = lastRow - firstRow + 1;
+        this.parentObject.getBounds().width = newW;
+        this.parentObject.getBounds().height = newH;
+        if (this.spriteMap.anchor == "center") {
+            this.parentObject.getBounds().x = this.parentObject.getX() - Math.floor(newW / 2);
+            this.parentObject.getBounds().y = this.parentObject.getY() - Math.floor(newH / 2);
+        }
     }
 
     setState(newState) {
         this.state = newState;
+        this.calculateSize();
     }
 
     getX() {
-        return this.parentObject.getX();
+        let x = this.parentObject.getX();
+        if (this.spriteMap.anchor == "center") {
+            x -= Math.floor(this.parentObject.getBounds().width / 2);
+        }
+        return x;
     }
 
     getY() {
-        return this.parentObject.getY();
+        let y = this.parentObject.getY(); 
+        if (this.spriteMap.anchor == "center") {
+            y -= Math.floor(this.parentObject.getBounds().height / 2);
+        }
+        return y;
     }
 
     calculateCurrentFrame() {

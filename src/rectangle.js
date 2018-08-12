@@ -25,4 +25,8 @@ export class Rectangle {
         }
         return true;
     }
+
+    copy() {
+        return new Rectangle(this.x, this.y, this.width, this.height);
+    }
 }

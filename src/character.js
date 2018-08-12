@@ -8,6 +8,8 @@ export class Character extends Updateable {
 
         this.initialX = initialX;
         this.initialY = initialY;
+        this.currentX = initialX;
+        this.currentY = initialY;
         this.z = 0; // default to z axis pos being 0
         this.bounds = new Rectangle(initialX, initialY, 1, 1);
         this.isVisible = true;
@@ -20,12 +22,24 @@ export class Character extends Updateable {
         this.intendedPosition = null;
     }
 
+    setX(newX) {
+        const diff = newX - this.currentX;
+        this.currentX += diff;
+        this.bounds.x += diff;
+    }
+
+    setY(newY) {
+        const diff = newY - this.currentY;
+        this.currentY += diff;
+        this.bounds.y += diff;
+    }
+
     getX() {
-        return this.bounds.x;
+        return this.currentX;
     }
 
     getY() {
-        return this.bounds.y;
+        return this.currentY;
     }
 
     getBounds() {

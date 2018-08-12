@@ -2,7 +2,7 @@ import {ProjectileCharacter} from "./projectile_character.js";
 import {EnemyCharacter} from "./enemy_character.js";
 import {Sprite} from "./sprite.js";
 import {Movable} from "./movable.js";
-import {Collider} from "./collider.js";
+import {Collider, PixelCollider} from "./collider.js";
 import {FACING_DOWN} from "./facing.js";
 import {Character} from "./character.js";
 import {TreasureCharacter} from "./treasure_character.js";
@@ -16,8 +16,7 @@ export class PlayerCharacter extends Character {
         this.obeysPhysics = true;
         this.inventory = [];
 
-        this.sprite = new Sprite(PLAYER_SPRITE_MAP, this);
-        this.sprite.setState(FACING_DOWN);
+        this.sprite = new Sprite(PLAYER_SPRITE_MAP, this, FACING_DOWN);
         this.children.push(this.sprite);
 
         this.movable = new Movable(this);
@@ -48,14 +47,14 @@ export class PlayerCharacter extends Character {
     }
 
     collide(withObject) {
-        if (withObject instanceof EnemyCharacter) {
-            this.health = 0;
-        }
-
         if (withObject instanceof TreasureCharacter) {
             this.inventory.push(withObject.treasureType);
             withObject.removeFromGameObjects = true;
         }        
+    }
+
+    receiveDamage(damageAmount) {
+        this.health -= damageAmount;
     }
 
     fireProjectile(gameObjects) {
