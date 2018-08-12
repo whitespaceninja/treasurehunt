@@ -1,10 +1,11 @@
 import {Character} from "./character.js";
 import {ProjectileCharacter} from "./projectile_character.js";
-import {Collider} from "./collider.js";
+import {Collider, PixelCollider} from "./collider.js";
 import {Sprite} from "./sprite.js";
 import {Movable} from "./movable.js";
 import {randomNumber} from "./math_extensions.js";
 import {FACING_DOWN, FACING_LEFT, FACING_RIGHT, FACING_UP} from "./facing.js";
+import { PlayerCharacter } from "./player_character.js";
 
 export class EnemyCharacter extends Character {
     constructor(initialX, initialY, spriteMap) {
@@ -13,9 +14,10 @@ export class EnemyCharacter extends Character {
         this.obeysPhysics = true;
         this.thinkCounter = 0;
         this.thinkSpeed = (1 / 1.0) * 1000;
-        this.sprite = new Sprite(spriteMap, this);
+        this.damage = 100; // TODO: make this part of a spec
+        this.sprite = new Sprite(spriteMap, this, 0);
         this.movable = new Movable(this);
-        this.collider = new Collider(this);
+        this.collider = new PixelCollider(this, this.sprite);
 
         this.children.push(this.sprite);
         this.children.push(this.movable);
@@ -32,7 +34,7 @@ export class EnemyCharacter extends Character {
             case 4: direction = FACING_UP; break;
         }
         
-        this.movable.move(direction);
+        //this.movable.move(direction);
     }
 
     update(timeNow, timeElapsed) {
@@ -49,6 +51,10 @@ export class EnemyCharacter extends Character {
     collide(withObject) {
         if (withObject instanceof ProjectileCharacter) {
             this.removeFromGameObjects = true;
+        }
+
+        if (withObject instanceof PlayerCharacter) {
+            withObject.receiveDamage(this.damage);
         }
     }
 }

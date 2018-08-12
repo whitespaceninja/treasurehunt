@@ -1,5 +1,5 @@
 import {Character} from "./character.js";
-import {Collider} from "./collider.js";
+import {PixelCollider} from "./collider.js";
 import {Movable} from "./movable.js";
 import {Sprite} from "./sprite.js";
 import { WallCharacter } from "./wall_character.js";
@@ -17,8 +17,7 @@ export class ProjectileCharacter extends Character {
         this.obeysPhysics = false;
 
         // set up our sprite
-        this.sprite = new Sprite(spriteMap, this);
-        this.sprite.setState(direction);
+        this.sprite = new Sprite(spriteMap, this, direction);
         this.children.push(this.sprite);
         
         // set up our ability to move
@@ -26,7 +25,7 @@ export class ProjectileCharacter extends Character {
         this.children.push(this.movable);
 
         // check for collisions with objects
-        this.collider = new Collider(this);
+        this.collider = new PixelCollider(this, this.sprite);
         this.children.push(this.collider);
     }
 

@@ -1,6 +1,5 @@
 import {Thread} from "./thread.js";
 import {Renderer} from "./renderer.js";
-import {Rectangle} from "./rectangle.js";
 import {Collider} from "./collider.js";
 
 export class Game {
@@ -53,16 +52,18 @@ export class Game {
     handleMovement(obj, intendedPosition, gameObjects) {
         let isObstructed = false;
         if (obj.obeysPhysics) {
-            const newRect = new Rectangle(intendedPosition.x, intendedPosition.y, obj.getBounds().width, obj.getBounds().height);
+            let newBounds = obj.getBounds().copy();
+            newBounds.x += intendedPosition.x - obj.getX();
+            newBounds.y += intendedPosition.y - obj.getY();
             isObstructed = gameObjects.objects.filter(c => 
                                                     c !== obj && 
                                                     c.isPhysical && 
-                                                    c.getBounds().intersects(newRect)).length > 0;
+                                                    c.getBounds().intersects(newBounds)).length > 0;
         }
 
         if (!isObstructed) {
-            obj.getBounds().x = intendedPosition.x;
-            obj.getBounds().y = intendedPosition.y;
+            obj.setX(intendedPosition.x);
+            obj.setY(intendedPosition.y);
         }
 
         obj.intendedPosition = null;
@@ -76,7 +77,10 @@ export class Game {
         gameObjects.objects.filter(x => x.intendedPosition != null).map(x => this.handleMovement(x, x.intendedPosition, gameObjects));
 
         // check all collisions
-        gameObjects.objects.filter(x => x instanceof Collider).map(x => x.checkCollision(gameObjects));
+        const colliderObjects = gameObjects.objects.filter(x => x instanceof Collider);
+
+        colliderObjects.map(x => x.checkPhysicalCollision(gameObjects));
+        colliderObjects.map(x => x.checkColliderCollision(gameObjects));
 
         // remove everything that needs to be removed
         var removableObjects = gameObjects.objects.filter(x => x.removeFromGameObjects);

@@ -21,7 +21,22 @@ export const ENEMY_SPIKEY_SPRITE_MAP = {
             { "displayTime": 910, "characters": ENEMY_SPIKEY_FRAME_1 },
             { "displayTime": 90, "characters": ENEMY_SPIKEY_FRAME_2 },
             { "displayTime": 430, "characters": ENEMY_SPIKEY_FRAME_3 },
-            { "displayTime": 90, "characters": ENEMY_SPIKEY_FRAME_2 } ]
+            { "displayTime": 90, "characters": ENEMY_SPIKEY_FRAME_2 } 
+        ]
+    }
+};
+
+const ENEMY_TEST_FRAME_1 = [
+    "1   ",
+    " 2  ",
+    "  3 ",
+    "   4",
+];
+
+export const ENEMY_TEST_SPRITE_MAP = {
+    "anchor": "center",
+    "states": {
+        "0": [{ "displayTime": 999999, "characters": ENEMY_TEST_FRAME_1 }]
     }
 };
 
