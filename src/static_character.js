@@ -6,7 +6,7 @@ export class StaticCharacter extends Character {
          this.symbol = symbol;
      }
  
-     getCharacter(row, col) {
+     getCharacter(col, row) {
          if (this.getX() == col && this.getY() == row) {
              return this.symbol;
          }

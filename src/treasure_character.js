@@ -11,7 +11,7 @@ export class TreasureCharacter extends Character {
         this.children.push(this.collider);
      }
  
-     getCharacter(row, col) {
+     getCharacter(col, row) {
          if (this.getX() == col && this.getY() == row) {
              return this.symbol;
          }

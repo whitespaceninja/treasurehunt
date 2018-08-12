@@ -131,7 +131,7 @@ export class Sprite extends Updateable {
         return ourRow;
     }
 
-    getCharacter(row, col) {
+    getCharacter(col, row) {
         var sprites = this.spriteMap.states[this.state];
         var frame = this.frame;
         var characterRows = sprites[frame]["characters"];

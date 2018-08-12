@@ -17,7 +17,7 @@ export class DoorwayCharacter extends Character {
         }
     }
 
-    getCharacter(row, col) {
+    getCharacter(col, row) {
         if (this.getX() == col && this.getY() == row) {
             return '%';
         }
