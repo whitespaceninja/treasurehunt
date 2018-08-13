@@ -1,5 +1,5 @@
-import {Character} from "./character.js";
-import {Collider} from "./collider.js";
+import {Character} from "./core/character.js";
+import {Collider} from "./core/collider.js";
 
 export class TreasureCharacter extends Character {
     constructor(initialX, initialY, symbol, treasureType) {

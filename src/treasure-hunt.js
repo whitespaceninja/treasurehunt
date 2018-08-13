@@ -1,13 +1,13 @@
 
-import {Game} from "./game.js";
+import {Game} from "./core/game.js";
 import {KeyMap} from "./key_map.js";
 import {AnimationHandler, WinAnimation, TextAnimaton} from "./animations.js";
 import {PlayerCharacter} from "./player_character.js";
 import {EnemyCharacter} from "./enemy_character.js";
-import {GameObjects} from "./game_objects.js";
-import {LEVEL_TOWN, ENEMY_TEST_SPRITE_MAP, ENEMY_SPIKEY_SPRITE_MAP} from "./treasure_hunt_art.js";
+import {GameObjects} from "./core/game_objects.js";
+import {LEVEL_TOWN, ENEMY_SPIKEY_SPRITE_MAP} from "./treasure_hunt_art.js";
 import {Map} from "./map.js";
-import {randomNumber} from "./math_extensions.js";
+import {randomNumber} from "./core/math_extensions.js";
 import {TreasureCharacter} from "./treasure_character.js";
 import {Menu} from "./menu.js";
 import {ACTION_INCREASE_VIEWPORT_H, ACTION_BACK_TO_GAME, ACTION_POP_MENU, ACTION_PUSH_MENU, ACTION_INCREASE_VIEWPORT_W} from "./menu_actions.js";
@@ -177,7 +177,7 @@ export class TreasureHuntGame extends Game {
                 //process.exit();
             } else if (this.state == this.STATE_RUNNING) {   
                 if (gameCommand == 'HELP') {
-                    showHelpMenu();
+                    this.showHelpMenu();
                 } else {
                     // update character movement
                     this.character.handleGameCommand(gameCommand, gameObjects);

@@ -1,4 +1,4 @@
-import {Character} from "./character.js";
+import {Character} from "./core/character.js";
 
 export class StaticCharacter extends Character {
     constructor(initialX, initialY, symbol) {
