@@ -1,4 +1,4 @@
-import {WallCharacter} from "./wall_character.js";
+import {WallCharacter} from "./characters/wall_character.js";
 
 export class Map {
     constructor(mapData) {

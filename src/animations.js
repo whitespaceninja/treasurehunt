@@ -1,4 +1,4 @@
-import {StaticCharacter} from "./static_character.js";
+import {StaticCharacter} from "./characters/static_character.js";
 
 export class Animation {
     constructor() { }
