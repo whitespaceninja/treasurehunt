@@ -1,4 +1,20 @@
 /**
+ * Assumes you are starting on a 
+ */
+function getWordLength(text, startIndex) {
+    let i = startIndex;
+    let wordLength = 1;
+    while (i <= text.length) {
+        if (i == text.length || text[i] == '\n' || text[i] == ' ') {
+            wordLength = i - startIndex;
+            break;
+        }
+        i++;
+    }
+    return wordLength;
+}
+
+/**
  * Takes in a string and a wrap width and splits the string into
  * an array of text substrings that are all guaranteed to be less than the wrap width.
  */
@@ -20,16 +36,9 @@ export function wrapText(text, wrapWidth) {
             i++;
             lastRowStart = i;
         } else if (curChar != ' ') {
-            let wordLength = 1;
             // look ahead at length of this word
-            let y = i;
-            while (y < text.length) {
-                y++;
-                if (y == text.length || text[y] == '\n' || text[y] == ' ') {
-                    wordLength = y - i;
-                    break;
-                }
-            }
+            const wordLength = getWordLength(text, i);
+
             if (i + wordLength - lastRowStart >= wrapWidth) {
                 // case: this word won't fit
                 rows.push(text.substring(lastRowStart, i));

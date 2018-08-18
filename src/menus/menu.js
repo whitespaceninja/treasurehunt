@@ -4,13 +4,14 @@ import {FACING_DOWN, FACING_UP} from "../core/facing";
 import {wrapText} from "../core/text_helpers";
 
 export class Menu {
-    constructor(menuSpec, viewport, zPosition) {
+    constructor(menuSpec, viewport, zPosition, spaceChar) {
         this.spec = menuSpec;
         this.viewport = viewport;
         this.characters = [];
         this.selectionCharacters = [];
         this.zPosition = zPosition;
         this.selectedOption = 0;
+        this.spaceChar = spaceChar;
     }
 
     getNumOptions() {
@@ -20,7 +21,7 @@ export class Menu {
     setOptionVisibility() {
         // set the visibility of the selection arrows at the beginning of each line
         if (this.selectionCharacters.length > 0) {
-            this.selectionCharacters.map(c => c.symbol = ' ');
+            this.selectionCharacters.map(c => c.symbol = this.spaceChar);
             this.selectionCharacters[this.selectedOption].symbol = '-';
         }
     }
@@ -91,7 +92,6 @@ export class Menu {
         const height = this.viewport.height;
 
         const summaryText = this.spec.summaryText;
-        const summaryTextLen = summaryText.length;
         const wrapW = Math.ceil(width * 0.8);
 
         // figure out x positions
@@ -124,17 +124,18 @@ export class Menu {
             for (var col = 0; col < wrapW; col++) {
                 const x = start_x + col;
                 const y = start_y + row;
-                let char = ' ';
+                let char = this.spaceChar;
                 let isSelectionChar = false;
+                const optionStartRow = numSummaryLines + numSpacingLines;
 
                 if (row < numSummaryLines) {
                     if (col < summaryTextRows[row].length) {
                         char = summaryTextRows[row][col];
                     }
-                } else if (row >= numSummaryLines + numSpacingLines) {
-                    const thisOptionIndex = row - numSummaryLines - numSpacingLines;
+                } else if (row >= optionStartRow) {
+                    const thisOptionIndex = row - optionStartRow;
                     const curOption = this.spec.options[thisOptionIndex];
-                    const curText = "- " + curOption.optionText;
+                    const curText = "-" + this.spaceChar + curOption.optionText;
                     
                     if (col < curText.length) {
                         char = curText[col];

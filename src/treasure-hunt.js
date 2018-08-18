@@ -163,7 +163,7 @@ export class TreasureHuntGame extends Game {
         // push menu state on
         this.prevState = this.state;
         this.state = this.STATE_MENU;
-        this.menu = new Menu(HELP_MENU, this.renderer.viewport, 1);
+        this.menu = new Menu(HELP_MENU, this.renderer.viewport, 1, this.renderer.getSpaceCharacter());
         this.menu.show(gameObjects);
     }
 
@@ -198,7 +198,7 @@ export class TreasureHuntGame extends Game {
                     this.menuStack.push(this.menu);
 
                     // show new menu
-                    this.menu = new Menu(actionObj.eventArgs.menu, this.renderer.viewport, 1);
+                    this.menu = new Menu(actionObj.eventArgs.menu, this.renderer.viewport, 1, this.renderer.getSpaceCharacter());
                     this.menu.show(gameObjects);
                 } else if (actionObj.action == ACTION_POP_MENU) {
                     // hide current menu
@@ -282,7 +282,6 @@ export class TreasureHuntGame extends Game {
                 }
 
                 that.renderer.clearScreen();
-                that.drawHelp(that.character.getCharacter());
                 that.renderer.render(gameObjects);
             } catch (err){
                 console.log(err.message);
@@ -294,22 +293,6 @@ export class TreasureHuntGame extends Game {
         // do this after initializing parent
         this.animationHandler = new AnimationHandler(this.renderer);
         this.resetLevel();
-    }
-
-    drawHelp(characterSymbol) {
-        var output = 'Use Firefox to play if you aren\'t already!!\n'
-        /*var output = 'Instructions: Use Firefox or Chrome (Firefox reduces flickering!)\n';
-        output = output + 'Break out the dev tools into a separate window and then click on my actual web page to enable controls.\n\n';
-        output = output + 'Use your "' + characterSymbol + '" character and go find the treasure ($) but watch out for bad guys...\n\n'; 
-        output = output + '| Control  | Action |\n';
-        output = output + '|----------|--------|\n';
-        output = output + '| spacebar | FIRE!  |\n';
-        output = output + '| w        | Up     |\n';
-        output = output + '| d        | Right  |\n';
-        output = output + '| s        | Down   |\n';
-        output = output + '| a        | Left   |\n';
-        output = output + '| c        | Quit   |\n';*/
-        console.log(output);
     }
 }
 
