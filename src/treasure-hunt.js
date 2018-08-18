@@ -10,7 +10,7 @@ import {Map} from "./map.js";
 import {randomNumber} from "./core/math_extensions.js";
 import {TreasureCharacter} from "./treasure_character.js";
 import {Menu} from "./menu.js";
-import {ACTION_INCREASE_VIEWPORT_H, ACTION_BACK_TO_GAME, ACTION_POP_MENU, ACTION_PUSH_MENU, ACTION_INCREASE_VIEWPORT_W} from "./menu_actions.js";
+import {ACTION_INCREASE_VIEWPORT_H, ACTION_RESET_LEVEL, ACTION_BACK_TO_GAME, ACTION_POP_MENU, ACTION_PUSH_MENU, ACTION_INCREASE_VIEWPORT_W} from "./menu_actions.js";
 import {HELP_MENU} from "./menu_specs.js";
 
 // Options that control the flow of the game
@@ -189,6 +189,9 @@ export class TreasureHuntGame extends Game {
                     this.state = this.prevState;
                     this.menu.hide(gameObjects);
                     this.menu = null;
+                } else if (actionObj.action == ACTION_RESET_LEVEL) {
+                    // reset this level
+                    this.resetLevel();
                 } else if (actionObj.action == ACTION_PUSH_MENU) {
                     // hide current menu and push it onto stack
                     this.menu.hide(gameObjects);

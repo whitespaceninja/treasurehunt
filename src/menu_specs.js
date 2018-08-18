@@ -1,4 +1,8 @@
-import {ACTION_INCREASE_VIEWPORT_H, ACTION_INCREASE_VIEWPORT_W, ACTION_BACK_TO_GAME, ACTION_POP_MENU, ACTION_PUSH_MENU} from "./menu_actions.js";
+import {
+    ACTION_INCREASE_VIEWPORT_H, ACTION_INCREASE_VIEWPORT_W, 
+    ACTION_BACK_TO_GAME, ACTION_POP_MENU, 
+    ACTION_PUSH_MENU, ACTION_RESET_LEVEL }
+    from "./menu_actions.js";
 
 export const SETTINGS_MENU = {
     type: "OPTIONS",
@@ -56,6 +60,13 @@ export const HELP_MENU = {
                 eventArgs: {
                     menu: SETTINGS_MENU
                 }
+            }],
+        },
+        {
+            optionText: "Reset Level",
+            actionMap: [{
+                key: 'ENTER',
+                action: ACTION_RESET_LEVEL
             }],
         }
     ]
