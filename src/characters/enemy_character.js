@@ -1,10 +1,10 @@
-import {Character} from "./core/character.js";
+import {Character} from "../core/character.js";
 import {ProjectileCharacter} from "./projectile_character.js";
-import {PixelCollider} from "./core/collider.js";
-import {Sprite} from "./core/sprite.js";
-import {Movable} from "./core/movable.js";
-import {randomNumber} from "./core/math_extensions.js";
-import {FACING_DOWN, FACING_LEFT, FACING_RIGHT, FACING_UP} from "./core/facing.js";
+import {PixelCollider} from "../core/collider.js";
+import {Sprite} from "../core/sprite.js";
+import {Movable} from "../core/movable.js";
+import {randomNumber} from "../core/math_extensions.js";
+import {FACING_DOWN, FACING_LEFT, FACING_RIGHT, FACING_UP} from "../core/facing.js";
 import {PlayerCharacter} from "./player_character.js";
 
 export class EnemyCharacter extends Character {

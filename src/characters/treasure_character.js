@@ -1,5 +1,5 @@
 import {StaticCharacter} from "./static_character.js";
-import {Collider} from "./core/collider.js";
+import {Collider} from "../core/collider.js";
 
 export class TreasureCharacter extends StaticCharacter {
     constructor(initialX, initialY, symbol, treasureType) {

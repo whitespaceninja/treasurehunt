@@ -2,16 +2,16 @@
 import {Game} from "./core/game.js";
 import {KeyMap} from "./key_map.js";
 import {AnimationHandler, WinAnimation, TextAnimaton} from "./animations.js";
-import {PlayerCharacter} from "./player_character.js";
-import {EnemyCharacter} from "./enemy_character.js";
+import {PlayerCharacter} from "./characters/player_character.js";
+import {EnemyCharacter} from "./characters/enemy_character.js";
 import {GameObjects} from "./core/game_objects.js";
 import {LEVEL_TOWN, ENEMY_SPIKEY_SPRITE_MAP} from "./treasure_hunt_art.js";
 import {Map} from "./map.js";
 import {randomNumber} from "./core/math_extensions.js";
-import {TreasureCharacter} from "./treasure_character.js";
-import {Menu} from "./menu.js";
-import {ACTION_INCREASE_VIEWPORT_H, ACTION_RESET_LEVEL, ACTION_BACK_TO_GAME, ACTION_POP_MENU, ACTION_PUSH_MENU, ACTION_INCREASE_VIEWPORT_W} from "./menu_actions.js";
-import {HELP_MENU} from "./menu_specs.js";
+import {TreasureCharacter} from "./characters/treasure_character.js";
+import {Menu} from "./menus/menu.js";
+import {ACTION_INCREASE_VIEWPORT_H, ACTION_RESET_LEVEL, ACTION_BACK_TO_GAME, ACTION_POP_MENU, ACTION_PUSH_MENU, ACTION_INCREASE_VIEWPORT_W} from "./menus/menu_actions.js";
+import {HELP_MENU} from "./menus/menu_specs.js";
 
 // Options that control the flow of the game
 var globalOptions = {

@@ -1,7 +1,7 @@
-import {StaticCharacter} from "./static_character";
+import {StaticCharacter} from "../characters/static_character";
 import {ACTION_NONE} from "./menu_actions.js";
-import {FACING_DOWN, FACING_UP} from "./core/facing.js";
-import {wrapText} from "./core/text_helpers.js";
+import {FACING_DOWN, FACING_UP} from "../core/facing";
+import {wrapText} from "../core/text_helpers";
 
 export class Menu {
     constructor(menuSpec, viewport, zPosition) {
