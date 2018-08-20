@@ -11,7 +11,12 @@ export class Game {
     }
 
     initialize(updateFunction, drawFunction, options) {
-        this.renderer = new ConsoleRenderer(options['viewportWidth'], options['viewportHeight']);
+        if (options['playInBrowser']) {
+            this.renderer = new HtmlRenderer(options['viewportWidth'], options['viewportHeight']);
+        } else {
+            this.renderer = new ConsoleRenderer(options['viewportWidth'], options['viewportHeight']);
+        }
+        
         this.threadUpdate = new Thread(updateFunction);
         this.threadDraw = new Thread(drawFunction);
 
@@ -19,27 +24,15 @@ export class Game {
         this.threadDraw.start(options['drawFPS']); //draw X times per second
 
         var that = this;
+        function keyDownHandler(e) {
+            var key = e.keyCode;
+            if (key) {
+                that.lastkeyPresses.push(key);
+            }
+        };
 
-        if (options['playInBrowser']) {
-            function keyDownHandler(e) {
-                var key = e.keyCode;
-                if (key) {
-                    that.lastkeyPresses.push(key);
-                }
-            };
-
-            // listen to the browser keys instad of direct console input
-            document.addEventListener("keydown", keyDownHandler, false);    
-        } else {
-            // this allows us to read keys directly from console input without ENTER
-            process.stdin.setRawMode(true); 
-            process.stdin.on('readable', function(data) {   
-                var key = process.stdin.read();
-                if (key) {
-                    that.lastkeyPresses.push(key);
-                }
-            });
-        }
+        // listen to the browser keys
+        document.addEventListener("keydown", keyDownHandler, false);    
     }
 
     getLastKeypress() {

@@ -15,7 +15,7 @@ import {HELP_MENU} from "./menus/menu_specs.js";
 
 // Options that control the flow of the game
 var globalOptions = {
-    'playInBrowser': true,
+    'playInBrowser': false,
     'drawFPS': 10,
     'updateFPS': 10,
     'viewportWidth': 40,
