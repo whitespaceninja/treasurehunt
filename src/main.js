@@ -4,8 +4,8 @@ import {MakeItRainGame} from "./make-it-rain.js";
 // Options that control the flow of the game
 var globalOptions = {
     'playInBrowser': false,
-    'drawFPS': 2,
-    'updateFPS': 2,
+    'drawFPS': 10,
+    'updateFPS': 10,
     'viewportWidth': 40,
     'minViewportWidth': 40,
     'maxViewportWidth': 60,
@@ -17,7 +17,7 @@ var globalOptions = {
 
 var rainOptions = {
     'playInBrowser': true,
-    'drawFPS': 10,
+    'drawFPS': 6,
     'updateFPS': 10,
     'viewportWidth': 40,
     'minViewportWidth': 40,
@@ -35,6 +35,8 @@ function run() {
             isRaining = true;
             var rainGame = new MakeItRainGame();
             rainGame.initialize(rainOptions);
+        } else {
+
         }
     }
 
