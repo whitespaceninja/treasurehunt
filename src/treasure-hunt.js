@@ -12,32 +12,14 @@ import {TreasureCharacter} from "./characters/treasure_character.js";
 import {Menu} from "./menus/menu.js";
 import {ACTION_INCREASE_VIEWPORT_H, ACTION_RESET_LEVEL, ACTION_BACK_TO_GAME, ACTION_POP_MENU, ACTION_PUSH_MENU, ACTION_INCREASE_VIEWPORT_W} from "./menus/menu_actions.js";
 import {HELP_MENU} from "./menus/menu_specs.js";
-
-// Options that control the flow of the game
-var globalOptions = {
-    'playInBrowser': false,
-    'drawFPS': 10,
-    'updateFPS': 10,
-    'viewportWidth': 40,
-    'minViewportWidth': 40,
-    'maxViewportWidth': 60,
-    'viewportHeight': 14,
-    'minViewportHeight': 14,
-    'maxViewportHeight': 20,
-    'numEnemies': 10
-};
-
-function run() {  
-    var thGame = new TreasureHuntGame();
-    thGame.initialize(globalOptions);
-}
-
-var gameObjects = new GameObjects();
+import {HtmlRenderer, ConsoleRenderer} from "./core/renderer.js";
 
 export class TreasureHuntGame extends Game {
     constructor() {
         // set up basic game objects
         super();
+
+        this.gameObjects = new GameObjects();
 
         this.map = new Map(LEVEL_TOWN);
         this.keyMap = new KeyMap();
@@ -94,23 +76,24 @@ export class TreasureHuntGame extends Game {
         this.state = this.STATE_RUNNING;
 
         // start from scratch
-        gameObjects.removeAllObjects();
+        this.gameObjects.removeAllObjects();
         this.animationHandler.clearAnimations();
 
         // create our player
         this.character = this.createPlayer();
-        gameObjects.addObject(this.character);
+        this.gameObjects.addObject(this.character);
 
         // add a levelGoal to this level
-        gameObjects.addObject(this.createGoal(gameObjects, this.map));
+        this.gameObjects.addObject(this.createGoal(this.gameObjects, this.map));
 
         // add some enemies
-        for (var i = 0; i < globalOptions['numEnemies']; i++) {
-            gameObjects.addObject(this.createEnemy(gameObjects, this.map));            
+        for (var i = 0; i < this.options['numEnemies']; i++) {
+            this.gameObjects.addObject(this.createEnemy(this.gameObjects, this.map));            
         }
 
         // add our map objects
-        this.map.getMapCharacters().map(x => gameObjects.addObject(x));
+        const that = this;
+        this.map.getMapCharacters().map(x => that.gameObjects.addObject(x));
 
         /*this.door = new DoorwayCharacter(2, 2, function() {
             window.location.href = 'http://www.google.com';
@@ -125,7 +108,7 @@ export class TreasureHuntGame extends Game {
         this.showHelpMenu();
 
         // first draw of render
-        this.renderer.render(gameObjects);
+        this.renderer.render(this.gameObjects);
     }
 
     // this is a blocking animation that 'explodes' the 
@@ -164,7 +147,7 @@ export class TreasureHuntGame extends Game {
         this.prevState = this.state;
         this.state = this.STATE_MENU;
         this.menu = new Menu(HELP_MENU, this.renderer.viewport, 1, this.renderer.getSpaceCharacter());
-        this.menu.show(gameObjects);
+        this.menu.show(this.gameObjects);
     }
 
     handleInput() {
@@ -180,45 +163,45 @@ export class TreasureHuntGame extends Game {
                     this.showHelpMenu();
                 } else {
                     // update character movement
-                    this.character.handleGameCommand(gameCommand, gameObjects);
+                    this.character.handleGameCommand(gameCommand, this.gameObjects);
                 }
             } else if (this.state == this.STATE_MENU) {
                 let actionObj = this.menu.handleInput(gameCommand);
                 if (actionObj.action == ACTION_BACK_TO_GAME) {
                     // remove current menu and go back to game
                     this.state = this.prevState;
-                    this.menu.hide(gameObjects);
+                    this.menu.hide(this.gameObjects);
                     this.menu = null;
                 } else if (actionObj.action == ACTION_RESET_LEVEL) {
                     // reset this level
                     this.resetLevel();
                 } else if (actionObj.action == ACTION_PUSH_MENU) {
                     // hide current menu and push it onto stack
-                    this.menu.hide(gameObjects);
+                    this.menu.hide(this.gameObjects);
                     this.menuStack.push(this.menu);
 
                     // show new menu
                     this.menu = new Menu(actionObj.eventArgs.menu, this.renderer.viewport, 1, this.renderer.getSpaceCharacter());
-                    this.menu.show(gameObjects);
+                    this.menu.show(this.gameObjects);
                 } else if (actionObj.action == ACTION_POP_MENU) {
                     // hide current menu
-                    this.menu.hide(gameObjects);
+                    this.menu.hide(this.gameObjects);
                     // pop prev menu and show it
                     const prevMenu = this.menuStack.pop();
                     this.menu = prevMenu;
-                    this.menu.show(gameObjects);
+                    this.menu.show(this.gameObjects);
                 } else if (actionObj.action == ACTION_INCREASE_VIEWPORT_H || 
                            actionObj.action == ACTION_INCREASE_VIEWPORT_W) {
                     if (actionObj.action == ACTION_INCREASE_VIEWPORT_H) {
                         // currently this breaks if we do it by an odd number
                         this.renderer.viewport.height += 2;
-                        if (this.renderer.viewport.height > globalOptions['maxViewportHeight']) {
-                            this.renderer.viewport.height = globalOptions['minViewportHeight'];
+                        if (this.renderer.viewport.height > this.options['maxViewportHeight']) {
+                            this.renderer.viewport.height = this.options['minViewportHeight'];
                         }
                     } else {
                         this.renderer.viewport.width += 4;
-                        if (this.renderer.viewport.width > globalOptions['maxViewportWidth']) {
-                            this.renderer.viewport.width = globalOptions['minViewportWidth'];
+                        if (this.renderer.viewport.width > this.options['maxViewportWidth']) {
+                            this.renderer.viewport.width = this.options['minViewportWidth'];
                         }
                     }
 
@@ -227,8 +210,8 @@ export class TreasureHuntGame extends Game {
                     this.renderer.setIsDirty();
 
                     // redraw menu
-                    this.menu.hide(gameObjects);
-                    this.menu.show(gameObjects);
+                    this.menu.hide(this.gameObjects);
+                    this.menu.show(this.gameObjects);
                 }
             }
         }
@@ -259,7 +242,9 @@ export class TreasureHuntGame extends Game {
     }
 
     initialize(options) {
-        var that = this;      
+        var that = this;  
+        
+        this.options = options;
 
         var lastUpdate = Date.now();
         var updateFunc = function () {
@@ -269,7 +254,7 @@ export class TreasureHuntGame extends Game {
                 lastUpdate = now;
 
                 that.handleInput();
-                that.update(now, timeElapsed, gameObjects);
+                that.update(now, timeElapsed, that.gameObjects);
             } catch (err){
                 console.log(err.message);
             }
@@ -282,13 +267,20 @@ export class TreasureHuntGame extends Game {
                 }
 
                 that.renderer.clearScreen();
-                that.renderer.render(gameObjects);
+                that.renderer.render(that.gameObjects);
             } catch (err){
                 console.log(err.message);
             }
         }
 
-        super.initialize(updateFunc, drawFunc, options);
+        let renderer = null;
+        if (options['playInBrowser']) {
+            renderer = new HtmlRenderer(options['viewportWidth'], options['viewportHeight']);
+        } else {
+            renderer = new ConsoleRenderer(options['viewportWidth'], options['viewportHeight']);
+        }
+
+        super.initialize(updateFunc, drawFunc, renderer, this.options);
 
         // do this after initializing parent
         this.animationHandler = new AnimationHandler(this.renderer);
@@ -296,4 +288,3 @@ export class TreasureHuntGame extends Game {
     }
 }
 
-run();

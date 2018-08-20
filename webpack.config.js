@@ -1,5 +1,5 @@
 module.exports = {
-  entry: './src/treasure-hunt.js',
+  entry: './src/main.js',
   output: {
     filename: 'bundle.js'
   },

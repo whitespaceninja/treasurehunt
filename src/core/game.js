@@ -1,5 +1,4 @@
 import {Thread} from "./thread.js";
-import {HtmlRenderer, ConsoleRenderer} from "./renderer.js";
 import {Collider} from "./collider.js";
 
 export class Game {
@@ -10,12 +9,8 @@ export class Game {
         this.renderer = null;
     }
 
-    initialize(updateFunction, drawFunction, options) {
-        if (options['playInBrowser']) {
-            this.renderer = new HtmlRenderer(options['viewportWidth'], options['viewportHeight']);
-        } else {
-            this.renderer = new ConsoleRenderer(options['viewportWidth'], options['viewportHeight']);
-        }
+    initialize(updateFunction, drawFunction, renderer, options) {
+        this.renderer = renderer;
         
         this.threadUpdate = new Thread(updateFunction);
         this.threadDraw = new Thread(drawFunction);

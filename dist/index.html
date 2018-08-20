@@ -8,10 +8,20 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#c23e3e">
     <meta name="theme-color" content="#ffffff">
-    <script src='bundle.js'></script>
+    
     <style>
-        p {
-            font-family: "Courier New";
+
+        body {
+            font-family: "Times Roman";
+            font-size: medium;
+        }
+        
+        button.link { 
+            background:none;
+            border:none; 
+            font-family: "Times Roman";
+            font-size: medium;
+            margin-left: -0.7%;
         }
     </style>
 </head>
@@ -30,17 +40,20 @@
     email: dave@whitespace.ninja
     twitters: @whitespaceninja
 -->
-<div id='game'></div>
+
 <br/>
     <br/>
         <br/>
             <br/>
-                <center>This page intentionally left blank</center>
+            
+                <center>This page intentionally left <button class="link" id="makeitrain">blank</button></center>
+<div id='game'></div>
 <!--
     My latest blog post on Medium:
     "Advice on the road to becoming a cto"
     https://medium.com/@whitespaceninja/advice-on-the-road-to-becoming-a-cto-83cd5220a14e
 -->
 
+<script src='bundle.js'></script>
 </body>
 </html>
