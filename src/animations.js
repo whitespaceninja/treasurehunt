@@ -1,4 +1,5 @@
 import {StaticCharacter} from "./characters/static_character.js";
+import {randomNumber,randomNumberRange} from "./core/math_extensions.js";
 
 export class Animation {
     constructor() { }
@@ -93,6 +94,62 @@ export class WinAnimation extends Animation {
             this.centerX + (this.radius * 2) > this.maxX &&
             this.centerY - (this.radius * 2) < 0 &&
             this.centerY + (this.radius * 2) > this.maxY;
+    }
+}
+
+export class RainAnimation extends Animation {
+    constructor(maxX, maxY) {
+        super();
+        this.raindrops = [];
+        // higher, the number, slower it goes
+        this.frameSpeed = 100;
+        this.lastFrame = Date.now();
+        this.maxX = maxX;
+        this.maxY = maxY;
+    }
+
+    createRaindrop() {
+        const x = randomNumber(this.maxX);
+        const y = 0;
+
+        const dropTypeSpin = randomNumber(100);
+        let dropChar = "|";
+        if (dropTypeSpin > 80) {
+            dropChar = "!"
+        }
+        
+        return new StaticCharacter(x, y, dropChar);
+    }
+
+    createRaindropWave() {
+        const numDrops = randomNumberRange(2, 6);
+        for (let i = 0; i < numDrops; i++) {
+            this.raindrops.push(this.createRaindrop());
+        }
+    }
+
+    update(timeNow, timeElapsed) {
+        var elapsed = timeNow - this.lastFrame;
+        if (elapsed >= this.frameSpeed) {
+            this.createRaindropWave();
+            this.lastFrame = timeNow;
+            for (let i = this.raindrops.length - 1; i >= 0; i--) {
+                // TODO: make this better
+                const raindrop = this.raindrops[i];
+                raindrop.setY(raindrop.getY() + 1);
+                if (raindrop.getY() > this.maxY) {
+                    this.raindrops.splice(i, 1);
+                }
+            }
+        }
+    }
+    
+    spawnRenderables() {
+        return this.raindrops;
+    }
+
+    isExpired() {
+        return false;
     }
 }
 
