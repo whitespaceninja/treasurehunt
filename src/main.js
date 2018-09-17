@@ -2,7 +2,7 @@ import {TreasureHuntGame} from "./treasure-hunt.js";
 import {MakeItRainGame} from "./make-it-rain.js";
 
 // Options that control the flow of the game
-var globalOptions = {
+var treasureHuntOptions = {
     'playInBrowser': false,
     'drawFPS': 10,
     'updateFPS': 10,
@@ -17,7 +17,7 @@ var globalOptions = {
 
 var rainOptions = {
     'playInBrowser': true,
-    'drawFPS': 6,
+    'drawFPS': 10,
     'updateFPS': 10,
     'viewportWidth': 40,
     'minViewportWidth': 40,
@@ -29,19 +29,21 @@ var rainOptions = {
 
 function run() {  
     let isRaining = false;
+    var rainGame = new MakeItRainGame();
     const button = document.getElementById("makeitrain");
     button.onclick = function(){
         if (!isRaining) {
             isRaining = true;
-            var rainGame = new MakeItRainGame();
             rainGame.initialize(rainOptions);
         } else {
-
+            isRaining = false;
+            rainGame.stop();
         }
     }
 
+    // this will run in the console
     var thGame = new TreasureHuntGame();
-    thGame.initialize(globalOptions);
+    thGame.initialize(treasureHuntOptions);
 }
 
 run();

@@ -16,6 +16,7 @@ const ENEMY_SPIKEY_FRAME_3 = [
 
 export const ENEMY_SPIKEY_SPRITE_MAP = {
     "anchor": "center",
+    "loop": "circle",
     "states": {
         "0": [
             { "displayTime": 910, "characters": ENEMY_SPIKEY_FRAME_1 },
@@ -35,6 +36,7 @@ const ENEMY_TEST_FRAME_1 = [
 
 export const ENEMY_TEST_SPRITE_MAP = {
     "anchor": "center",
+    "loop": "circle",
     "states": {
         "0": [{ "displayTime": 999999, "characters": ENEMY_TEST_FRAME_1 }]
     }
@@ -42,6 +44,7 @@ export const ENEMY_TEST_SPRITE_MAP = {
 
 export const PROJECTILE_SPRITE_MAP = {
     "anchor": "center",
+    "loop": "circle",
     "states": {
         [FACING_LEFT]: [{ "displayTime": 999999, "characters": ['\u25C2'] }],
         [FACING_UP]: [{ "displayTime": 999999, "characters": ['\u25B4'] }],
@@ -52,6 +55,7 @@ export const PROJECTILE_SPRITE_MAP = {
 
 export const PLAYER_SPRITE_MAP = {
     "anchor": "center",
+    "loop": "circle",
     "states": {
         [FACING_LEFT]: [{ "displayTime": 999999, "characters": ['\u25C1'] }],
         [FACING_UP]: [{ "displayTime": 999999, "characters": ['\u25B3'] }],

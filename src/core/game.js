@@ -1,5 +1,6 @@
 import {Thread} from "./thread.js";
 import {Collider} from "./collider.js";
+import {GameObjects} from "./game_objects.js";
 
 export class Game {
     constructor() {
@@ -7,6 +8,7 @@ export class Game {
         this.threadUpdate = null;
         this.threadDraw = null;
         this.renderer = null;
+        this.gameObjects = new GameObjects();
     }
 
     initialize(updateFunction, drawFunction, renderer, options) {
@@ -28,6 +30,16 @@ export class Game {
 
         // listen to the browser keys
         document.addEventListener("keydown", keyDownHandler, false);    
+    }
+
+    stop() {
+        // stopping threads and removing all gameObjects should be enough
+        this.threadDraw.stop();
+        this.threadUpdate.stop();
+        this.gameObjects.removeAllObjects();
+
+        // one more render to clear everything
+        this.renderer.render(this.gameObjects);
     }
 
     getLastKeypress() {
