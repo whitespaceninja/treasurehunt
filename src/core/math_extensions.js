@@ -5,5 +5,5 @@ export function randomNumber(max) {
 export function randomNumberRange(min, max) {
     const diff = max - min;
     const addition = Math.random() * diff;
-    return Math.floor(min + addition + 1);    
+    return Math.floor(min + addition);    
 }

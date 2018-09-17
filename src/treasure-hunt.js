@@ -19,8 +19,6 @@ export class TreasureHuntGame extends Game {
         // set up basic game objects
         super();
 
-        this.gameObjects = new GameObjects();
-
         this.map = new Map(LEVEL_TOWN);
         this.keyMap = new KeyMap();
         this.menuStack = [];
@@ -70,6 +68,11 @@ export class TreasureHuntGame extends Game {
         // create enemies
         var enemyPlacement = this.getRandomMapPlacement(gameObjects, map);
         return new EnemyCharacter(enemyPlacement.x, enemyPlacement.y, ENEMY_SPIKEY_SPRITE_MAP);
+    }
+
+    clearLevel() {
+        this.gameObjects.removeAllObjects();
+        this.animationHandler.clearAnimations();
     }
     
     resetLevel() {
@@ -129,6 +132,7 @@ export class TreasureHuntGame extends Game {
     checkDeadCondition() {
         if (this.character.health <= 0) {
             this.state = this.STATE_DEAD;
+            this.clearLevel();
             this.createInitialExplosion(this.character.getX(), this.character.getY(), "DEAD");
             this.resetLevelTime = Date.now() + 6000;
         }
@@ -137,6 +141,7 @@ export class TreasureHuntGame extends Game {
     checkWinCondition() {
         if (this.character.hasTreasure('levelGoal')) {
             this.state = this.STATE_WINNING;
+            this.clearLevel();
             this.createInitialExplosion(this.character.getX(), this.character.getY(), "WIN");
             this.resetLevelTime = Date.now() + 6000;
         }

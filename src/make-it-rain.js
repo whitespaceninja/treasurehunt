@@ -8,8 +8,6 @@ export class MakeItRainGame extends Game {
     constructor() {
         // set up basic game objects
         super();
-
-        this.gameObjects = new GameObjects();
     }
     
     resetLevel() {
@@ -22,7 +20,6 @@ export class MakeItRainGame extends Game {
         // first draw of render
         this.renderer.render(this.gameObjects);
     }
-
 
     handleInput() {
         var key = this.getLastKeypress();
@@ -74,7 +71,7 @@ export class MakeItRainGame extends Game {
             // random guess that its 10 pixels per character
             // override options for now
             options['viewportWidth'] = Math.floor(window.innerWidth / 4.2);
-            options['viewportHeight'] = Math.floor(window.innerHeight / 10);
+            options['viewportHeight'] = Math.floor(window.innerHeight / 45);
             renderer = new HtmlRenderer(options['viewportWidth'], options['viewportHeight']);
         } else {
             renderer = new ConsoleRenderer(options['viewportWidth'], options['viewportHeight']);

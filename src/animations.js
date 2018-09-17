@@ -1,50 +1,66 @@
 import {StaticCharacter} from "./characters/static_character.js";
+import {Sprite} from "./core/sprite.js";
 import {randomNumber,randomNumberRange} from "./core/math_extensions.js";
+import {Character} from "./core/character.js";
+import {SPLASH_SPRITE_ART} from "./rain_art.js";
 
 export class Animation {
     constructor() { }
 
-    update(timeNow, timeElapsed) { }
-
-    spawnRenderables() { }
+    update(timeNow, timeElapsed, gameObjects) { }
 
     isExpired() { return true; }
+
+    // called to clean up this animation after it expires
+    cleanup() { }
 }
 
 export class TextAnimaton extends Animation {
     constructor(centerX, centerY, text) {
         super();
-        this.centerX = centerX;
-        this.centerY = centerY;
         this.frameSpeed = 600;
-        this.lastFrame = Date.now();
-        this.isVisible = false;
-        this.text = text;
+        this.frameElapsed = 0;
+        this.isInGameObjects = false;
+
+        this.characters = [];
+        // add text to the center of the animation
+        for (var i = 0; i < text.length; i++) {
+            const x_offset = Math.floor(text.length / 2) - i;
+            const thisChar = new StaticCharacter(centerX - x_offset, centerY, text.charAt(i)); 
+            // show this above other animations (TODO: move to parameter)
+            thisChar.z = 2;
+            this.characters.push(thisChar);
+        }
+
+        // do this after setting character array
+        this.setVisibility(false);
+        
     }
 
-    update(timeNow, timeElapsed) {
-        if (timeNow - this.lastFrame > this.frameSpeed) {
-            this.isVisible = !this.isVisible;
-            this.lastFrame = timeNow;
-        }
+    setVisibility(isVisible) {
+        this.isVisible = isVisible;
+        this.characters.map(x => x.isVisible = isVisible);
     }
 
-    spawnRenderables() {
-        if (this.isVisible) {
-            let characters = [];
-            // add WIN in the center of the explosion.
-            for (var i = 0; i < this.text.length; i++) {
-                var x_offset = Math.floor(this.text.length / 2) - i;
-                characters.push(new StaticCharacter(this.centerX - x_offset, this.centerY, this.text.charAt(i)));
-            }
-            return characters;
+    update(timeNow, timeElapsed, gameObjects) {
+        if (!this.isInGameObjects) {
+            gameObjects.addObjects(this.characters);
         }
-        return null;
+
+        this.frameElapsed += timeElapsed;
+        if (this.frameElapsed >= this.frameSpeed) {
+            this.frameElapsed -= this.frameSpeed;
+            this.setVisibility(!this.isVisible);
+        }
     }
 
     isExpired() {
         // this animation never goes away
         return false;
+    }
+
+    cleanup() {
+        this.characters.map(x => x.removeFromGameObjects = true);
     }
 }
 
@@ -55,25 +71,19 @@ export class WinAnimation extends Animation {
         this.centerX = centerX;
         this.centerY = centerY;
         this.frameSpeed = 60;
-        this.lastFrame = Date.now();
+        this.frameElapsed = 0;
+        this.characters = [];
+        
         this.maxX = maxX;
         this.maxY = maxY;
     }
 
-    update(timeNow, timeElapsed) {
-        var elapsed = timeNow - this.lastFrame;
-        if (elapsed >= this.frameSpeed) {
-            this.radius++;
-            this.lastFrame = timeNow;
-        }
-    }
-    
-    spawnRenderables() {
-        let characters = [];
+    getNewExplosionRing(centerX, centerY, radius) {
+        let ring = [];
         // create explosion particles in a blast radius away from the center
-        for (var y = this.centerY - this.radius; y <= this.centerY + this.radius; y++) {
-            var difference = Math.abs(this.centerY - y);
-            var numXs = Math.min(2, this.radius - difference + 1); // add 1 because we always want at least 1 explosion on each line
+        for (var y = centerY - radius; y <= centerY + radius; y++) {
+            var difference = Math.abs(centerY - y);
+            var numXs = Math.min(2, radius - difference + 1); // add 1 because we always want at least 1 explosion on each line
             
             for (var i = 0; i < numXs; i++) {
                 var multiplier = 1;
@@ -81,12 +91,28 @@ export class WinAnimation extends Animation {
                     multiplier = -1;
                 }
                 
-                var x = this.centerX + ((this.radius - difference) * multiplier);
+                var x = centerX + ((radius - difference) * multiplier);
                 var character = new StaticCharacter(x, y, '*');
-                characters.push(character);
+                ring.push(character);
             }
         }
-        return characters;
+
+        return ring;
+    }
+
+    update(timeNow, timeElapsed, gameObjects) {
+        this.frameElapsed += timeElapsed;
+        if (this.frameElapsed >= this.frameSpeed) {
+            this.frameElapsed -= this.frameSpeed;
+            this.radius++;
+
+            // remove old characters
+            this.characters.map(x => x.removeFromGameObjects = true);
+
+            // get new characters and add them
+            this.characters = this.getNewExplosionRing(this.centerX, this.centerY, this.radius);
+            gameObjects.addObjects(this.characters);
+        }
     }
 
     isExpired() {
@@ -94,6 +120,18 @@ export class WinAnimation extends Animation {
             this.centerX + (this.radius * 2) > this.maxX &&
             this.centerY - (this.radius * 2) < 0 &&
             this.centerY + (this.radius * 2) > this.maxY;
+    }
+
+    cleanup() {
+        this.characters.map(x => x.removeFromGameObjects = true);
+    }
+}
+
+export class RainDropSplash extends Character {
+    constructor(initialX, initialY, spriteMap) {
+        super(initialX, initialY);
+        this.sprite = new Sprite(spriteMap, this, "0");
+        this.children.push(this.sprite);
     }
 }
 
@@ -103,13 +141,16 @@ export class RainAnimation extends Animation {
         this.raindrops = [];
         // higher, the number, slower it goes
         this.frameSpeed = 100;
-        this.lastFrame = Date.now();
+        this.frameElapsed = 0;
+        this.minRainDropsPerWave = 2;
+        this.maxRainDropsPerWave = 5;
+        this.depth = 1;
         this.maxX = maxX;
         this.maxY = maxY;
     }
 
     createRaindrop() {
-        const x = randomNumber(this.maxX);
+        const x = randomNumberRange(1, this.maxX - 1);
         const y = 0;
 
         const dropTypeSpin = randomNumber(100);
@@ -117,39 +158,68 @@ export class RainAnimation extends Animation {
         if (dropTypeSpin > 80) {
             dropChar = "!"
         }
+
+        // choose a random depth for this raindrop
+        const depth = randomNumber(this.depth);
         
-        return new StaticCharacter(x, y, dropChar);
+        let raindrop = new StaticCharacter(x, y, dropChar);
+        raindrop.depth = depth;
+        return raindrop;
     }
 
-    createRaindropWave() {
-        const numDrops = randomNumberRange(2, 6);
+    getNewRaindropWave() {
+        let drops = [];
+        const numDrops = randomNumberRange(this.minRainDropsPerWave, this.maxRainDropsPerWave);
         for (let i = 0; i < numDrops; i++) {
-            this.raindrops.push(this.createRaindrop());
+            drops.push(this.createRaindrop());
         }
+        return drops;
     }
 
-    update(timeNow, timeElapsed) {
-        var elapsed = timeNow - this.lastFrame;
-        if (elapsed >= this.frameSpeed) {
-            this.createRaindropWave();
-            this.lastFrame = timeNow;
-            for (let i = this.raindrops.length - 1; i >= 0; i--) {
-                // TODO: make this better
-                const raindrop = this.raindrops[i];
-                raindrop.setY(raindrop.getY() + 1);
-                if (raindrop.getY() > this.maxY) {
-                    this.raindrops.splice(i, 1);
-                }
+    tickRainDrop(raindrop) {
+        raindrop.setY(raindrop.getY() + 1);
+    }
+
+    removeExpiredRaindrops(raindrops, maxY, gameObjects) {
+        for (let i = raindrops.length - 1; i >= 0; i--) {
+            let raindrop = raindrops[i];
+            if (raindrop.getY() == maxY - raindrop.depth) {
+                // remove from gameObjects as well as our list
+                let deadRaindrop = raindrops.splice(i, 1)[0];
+                gameObjects.removeObject(deadRaindrop);
+
+                let splash = new RainDropSplash(deadRaindrop.getX(), deadRaindrop.getY() + 1, SPLASH_SPRITE_ART);
+                gameObjects.addObject(splash);
             }
         }
     }
-    
-    spawnRenderables() {
-        return this.raindrops;
+
+    update(timeNow, timeElapsed, gameObjects) {
+        this.frameElapsed += timeElapsed;
+        if (this.frameElapsed >= this.frameSpeed) {
+            this.frameElapsed -= this.frameSpeed;
+            
+            // move all raindrops downwards
+            for (let i = this.raindrops.length - 1; i >= 0; i--) {
+                this.tickRainDrop(this.raindrops[i]);
+            }
+
+            this.removeExpiredRaindrops(this.raindrops, this.maxY, gameObjects);
+
+            // add a new raindrop wave
+            let newDrops = this.getNewRaindropWave();
+            const that = this;
+            newDrops.map(x => that.raindrops.push(x));
+            gameObjects.addObjects(newDrops);
+        }
     }
 
     isExpired() {
         return false;
+    }
+
+    cleanup() {
+        this.raindrops.map(x => x.removeFromGameObjects = true);
     }
 }
 
@@ -164,28 +234,20 @@ export class AnimationHandler {
     }
 
     update(timeNow, timeElapsed, gameObjects) {
-        if (this.animations.length > 0) {
-            // clear everything (TODO: we shouldn't have to do this)
-            gameObjects.removeAllObjects();
-        }
-
         for (var i = this.animations.length - 1; i >= 0 ; i--) {
             var animation = this.animations[i];
-            animation.update(timeNow, timeElapsed);
+            animation.update(timeNow, timeElapsed, gameObjects);
 
             if (animation.isExpired()) {
                 // remove it from our list
-                this.animations.splice(i, 1);
-            } else {
-                const characters = this.animations[i].spawnRenderables();
-                if (characters != null && characters.length > 0) {
-                    characters.map(x => gameObjects.addObject(x));
-                }
+                const expiredAnimation = this.animations.splice(i, 1)[0];
+                expiredAnimation.cleanup();
             }
         }
     }
 
     clearAnimations() {
+        this.animations.map(x => x.cleanup());
         this.animations = []
     }
 }
