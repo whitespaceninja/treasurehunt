@@ -142,8 +142,8 @@ export class RainAnimation extends Animation {
         // higher, the number, slower it goes
         this.frameSpeed = 100;
         this.frameElapsed = 0;
-        this.minRainDropsPerWave = 2;
-        this.maxRainDropsPerWave = 5;
+        this.minRainDropsPerWave = 3;
+        this.maxRainDropsPerWave = 6;
         this.depth = 1;
         this.maxX = maxX;
         this.maxY = maxY;
@@ -155,8 +155,8 @@ export class RainAnimation extends Animation {
 
         const dropTypeSpin = randomNumber(100);
         let dropChar = "|";
-        if (dropTypeSpin > 80) {
-            dropChar = "!"
+        if (dropTypeSpin > 75) {
+            dropChar = ".";
         }
 
         // choose a random depth for this raindrop
@@ -187,6 +187,11 @@ export class RainAnimation extends Animation {
                 // remove from gameObjects as well as our list
                 let deadRaindrop = raindrops.splice(i, 1)[0];
                 gameObjects.removeObject(deadRaindrop);
+
+                let x = deadRaindrop.getX();
+                if (x % 2 == 1) {
+                    x -= 1;
+                }
 
                 let splash = new RainDropSplash(deadRaindrop.getX(), deadRaindrop.getY() + 1, SPLASH_SPRITE_ART);
                 gameObjects.addObject(splash);

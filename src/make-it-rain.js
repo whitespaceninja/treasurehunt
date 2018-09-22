@@ -68,10 +68,6 @@ export class MakeItRainGame extends Game {
 
         let renderer = null;
         if (options['playInBrowser']) {
-            // random guess that its 10 pixels per character
-            // override options for now
-            options['viewportWidth'] = Math.floor(window.innerWidth / 4.2);
-            options['viewportHeight'] = Math.floor(window.innerHeight / 45);
             renderer = new HtmlRenderer(options['viewportWidth'], options['viewportHeight']);
         } else {
             renderer = new ConsoleRenderer(options['viewportWidth'], options['viewportHeight']);
