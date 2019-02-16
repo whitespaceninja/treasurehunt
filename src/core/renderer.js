@@ -24,6 +24,16 @@ export class Renderer {
         return ' ';
     }
 
+    getLineStartCharacter() {
+        // by default, this is nothing
+        return '';
+    }
+
+    getLineEndCharacter() {
+        // by default, this is nothing
+        return '';
+    }
+
     getIsDirty() {
         return this.isDirty;   
     }
@@ -49,50 +59,9 @@ export class Renderer {
         this.viewport.x = Math.min(map.width - this.viewport.width, Math.max(0, character.getX() - (this.viewport.width / 2)));
         this.viewport.y = Math.min(map.height - this.viewport.height, Math.max(0, character.getY() - (this.viewport.height / 2)));
     }
-}
-
-export class ConsoleRenderer extends Renderer {
-    constructor(viewW, viewH) {
-        super(viewW, viewH);
-    }
 
     render(gameObjects) {
-        var output = '';
-        var renderableObjects = this.getRenderableObjectsOnScreen(gameObjects);
-        // reverse sort by z axis, grab highest
-        renderableObjects.sort((a, b) => b.z - a.z);
-        
-        for (var row = this.viewport.y; row < this.viewport.y + this.viewport.height; row++) {
-            for (var col = this.viewport.x; col < this.viewport.x + this.viewport.width; col++) {
-                var characters = renderableObjects.filter(c => c.getCharacter).map(c => c.getCharacter(col, row)).filter(c => c != null);
-                if (characters.length > 0) {
-                    output = output + characters[0];
-                } else {
-                    output = output + ' ';
-                }
-            }
-            output = output + '\n';
-        }
-
-        console.log(output);
-
-        // clear the redraw flag on all objects we were able to render
-        renderableObjects.map(c => c.needsRedraw = false);
-    }
-}
-
-export class HtmlRenderer extends Renderer {
-    constructor(viewW, viewH) {
-        super(viewW, viewH);
-    }
-
-    getSpaceCharacter() {
-        // html strips out regular spaces
-        return '&nbsp;';
-    }
-
-    render(gameObjects) {
-        var output = '<p>';
+        var output = this.getLineStartCharacter();
         var renderableObjects = this.getRenderableObjectsOnScreen(gameObjects);
         // reverse sort by z axis, grab highest
         renderableObjects.sort((a, b) => b.z - a.z);
@@ -106,13 +75,55 @@ export class HtmlRenderer extends Renderer {
                     output += this.getSpaceCharacter();
                 }
             }
-            output += '</p><p>';
+            output += this.getLineEndCharacter() + this.getLineStartCharacter();
         }
-        output += '<p>';
+        output += this.getLineEndCharacter();
 
-        document.getElementById('game').innerHTML = output;
+        this.internalDraw(output);
 
         // clear the redraw flag on all objects we were able to render
         renderableObjects.map(c => c.needsRedraw = false);
+    }
+
+    internalDraw(fullString) {
+        // do nothing, override for each renderer
+    }
+}
+
+export class ConsoleRenderer extends Renderer {
+    constructor(viewW, viewH) {
+        super(viewW, viewH);
+    }
+
+    internalDraw(fullString) {
+        console.log(fullString);
+    }
+
+    getLineEndCharacter() {
+        // by default, this is nothing
+        return '\n';
+    }
+}
+
+export class HtmlRenderer extends Renderer {
+    constructor(viewW, viewH) {
+        super(viewW, viewH);
+    }
+
+    getSpaceCharacter() {
+        // html strips out regular spaces
+        return '&nbsp;';
+    }
+
+    getLineStartCharacter() {
+        return '<p>';
+    }
+
+    getLineEndCharacter() {
+        return '</p>';
+    }
+
+    internalDraw(fullString) {
+        document.getElementById('game').innerHTML = fullString;
     }
 }

@@ -1,4 +1,4 @@
-import {FACING_DOWN, FACING_LEFT, FACING_RIGHT, FACING_UP} from "./core/facing.js";
+import {FACING_DOWN, FACING_LEFT, FACING_RIGHT, FACING_UP} from "../core/facing.js";
 
 const ENEMY_SPIKEY_FRAME_1 = [
 "<..>"

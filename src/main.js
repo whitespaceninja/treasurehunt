@@ -1,5 +1,5 @@
-import {TreasureHuntGame} from "./treasure-hunt.js";
-import {MakeItRainGame} from "./make-it-rain.js";
+import {TreasureHuntGame} from "./treasure_hunt/treasure-hunt.js";
+import {MakeItRainGame} from "./make_it_rain/make-it-rain.js";
 
 // Options that control the flow of the game
 var treasureHuntOptions = {
