@@ -1,7 +1,9 @@
 
 import {Game} from "./core/game.js";
 import {KeyMap} from "./key_map.js";
-import {AnimationHandler, WinAnimation, TextAnimaton} from "./animations.js";
+import {AnimationHandler} from "./animations/animation_handler.js";
+import {WinAnimation} from "./animations/win_animation.js";
+import {TextAnimaton} from "./animations/text_animation.js";
 import {PlayerCharacter} from "./characters/player_character.js";
 import {EnemyCharacter} from "./characters/enemy_character.js";
 import {GameObjects} from "./core/game_objects.js";

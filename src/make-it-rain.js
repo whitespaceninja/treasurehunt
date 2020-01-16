@@ -1,7 +1,7 @@
 
 import {Game} from "./core/game.js";
-import {AnimationHandler, RainAnimation} from "./animations.js";
-import {GameObjects} from "./core/game_objects.js";
+import {AnimationHandler} from "./animations/animation_handler.js";
+import {RainAnimation} from "./animations/rain_animation";
 import {HtmlRenderer, ConsoleRenderer} from "./core/renderer.js";
 
 export class MakeItRainGame extends Game {
