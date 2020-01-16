@@ -1,4 +1,4 @@
-import {Character} from "../core/character.js";
+import {Character} from "../../core/character.js";
 
 export class WallCharacter extends Character {
     constructor(initialX, initialY, symbol) {

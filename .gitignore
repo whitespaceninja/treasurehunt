@@ -85,3 +85,6 @@ typings/
 
 # Serverless directories
 .serverless
+
+# Output of webpack
+bundle.js

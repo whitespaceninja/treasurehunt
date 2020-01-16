@@ -1,5 +1,5 @@
 const SPLASH_FRAME_1 = [
-    "_"//"\\     /",
+    " _ "//"\\     /",
     //"   _   "
 ];
 
@@ -21,8 +21,8 @@ export const SPLASH_SPRITE_ART = {
     "states": {
         "0": [
             { "displayTime": 90, "characters": SPLASH_FRAME_1 },
-            { "displayTime": 70, "characters": SPLASH_FRAME_2 },
-            { "displayTime": 60, "characters": SPLASH_FRAME_3 }
+            { "displayTime": 80, "characters": SPLASH_FRAME_2 },
+            { "displayTime": 70, "characters": SPLASH_FRAME_3 }
         ]
     }
 };

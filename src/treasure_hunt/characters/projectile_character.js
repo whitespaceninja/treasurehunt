@@ -1,7 +1,7 @@
-import {Character} from "../core/character.js";
-import {PixelCollider} from "../core/collider.js";
-import {Movable} from "../core/movable.js";
-import {Sprite} from "../core/sprite.js";
+import {Character} from "../../core/character.js";
+import {PixelCollider} from "../../core/collider.js";
+import {Movable} from "../../core/movable.js";
+import {Sprite} from "../../core/sprite.js";
 import {WallCharacter} from "./wall_character.js";
 
 export class ProjectileCharacter extends Character {

@@ -1,5 +1,5 @@
-import {TreasureHuntGame} from "./treasure-hunt.js";
-import {MakeItRainGame} from "./make-it-rain.js";
+import {TreasureHuntGame} from "./treasure_hunt/treasure-hunt.js";
+import {MakeItRainGame} from "./make_it_rain/make-it-rain.js";
 
 // Options that control the flow of the game
 var treasureHuntOptions = {
@@ -20,11 +20,7 @@ var rainOptions = {
     'drawFPS': 10,
     'updateFPS': 10,
     'viewportWidth': 40,
-    'minViewportWidth': 40,
-    'maxViewportWidth': 60,
     'viewportHeight': 14,
-    'minViewportHeight': 14,
-    'maxViewportHeight': 20,
 };
 
 function run() {  
@@ -34,6 +30,10 @@ function run() {
     button.onclick = function(){
         if (!isRaining) {
             isRaining = true;
+            // trial and error found these magic numbers. Height works well, width 
+            // is different for mobile vs desktop for some reason
+            rainOptions['viewportWidth'] = Math.floor(window.innerWidth / 8);
+            rainOptions['viewportHeight'] = Math.floor(window.innerHeight / 32);
             rainGame.initialize(rainOptions);
         } else {
             isRaining = false;

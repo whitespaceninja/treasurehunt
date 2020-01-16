@@ -1,8 +1,7 @@
-
-import {Game} from "./core/game.js";
-import {AnimationHandler, RainAnimation} from "./animations.js";
-import {GameObjects} from "./core/game_objects.js";
-import {HtmlRenderer, ConsoleRenderer} from "./core/renderer.js";
+import {Game} from "../core/game.js";
+import {AnimationHandler} from "../core/animation_handler.js";
+import {RainAnimation} from "./animations.js";
+import {HtmlRenderer, ConsoleRenderer} from "../core/renderer.js";
 
 export class MakeItRainGame extends Game {
     constructor() {
@@ -68,10 +67,6 @@ export class MakeItRainGame extends Game {
 
         let renderer = null;
         if (options['playInBrowser']) {
-            // random guess that its 10 pixels per character
-            // override options for now
-            options['viewportWidth'] = Math.floor(window.innerWidth / 4.2);
-            options['viewportHeight'] = Math.floor(window.innerHeight / 45);
             renderer = new HtmlRenderer(options['viewportWidth'], options['viewportHeight']);
         } else {
             renderer = new ConsoleRenderer(options['viewportWidth'], options['viewportHeight']);

@@ -1,9 +1,9 @@
 import {ProjectileCharacter} from "./projectile_character.js";
-import {Sprite} from "../core/sprite.js";
-import {Movable} from "../core/movable.js";
-import {Collider} from "../core/collider.js";
-import {FACING_DOWN} from "../core/facing.js";
-import {Character} from "../core/character.js";
+import {Sprite} from "../../core/sprite.js";
+import {Movable} from "../../core/movable.js";
+import {Collider} from "../../core/collider.js";
+import {FACING_DOWN} from "../../core/facing.js";
+import {Character} from "../../core/character.js";
 import {TreasureCharacter} from "./treasure_character.js";
 import {PLAYER_SPRITE_MAP, PROJECTILE_SPRITE_MAP} from "../treasure_hunt_art.js";
 
