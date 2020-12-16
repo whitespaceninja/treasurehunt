@@ -5,6 +5,7 @@ import {GameObjects} from "./game_objects.js";
 export class Game {
     constructor() {
         this.lastkeyPresses = [];
+        this.lastMouseMovements = [];
         this.threadUpdate = null;
         this.threadDraw = null;
         this.renderer = null;
@@ -28,8 +29,17 @@ export class Game {
             }
         };
 
+        function mouseMoveHandler(e) {
+            var x = e.clientX;
+            var y = e.clientY;
+            if (x && y) {
+                that.lastMouseMovements.push({x: x, y: y});
+            }
+        };
+
         // listen to the browser keys
-        document.addEventListener("keydown", keyDownHandler, false);    
+        document.addEventListener("keydown", keyDownHandler, false); 
+        document.addEventListener("mousemove", mouseMoveHandler, false);    
     }
 
     stop() {
@@ -47,6 +57,13 @@ export class Game {
             return null;
         }
         return this.lastkeyPresses.shift();
+    }
+
+    getLastMouseMovement() {
+        if (this.lastMouseMovements.length <= 0) {
+            return null;
+        }
+        return this.lastMouseMovements.shift();
     }
 
     handleMovement(obj, intendedPosition, gameObjects) {

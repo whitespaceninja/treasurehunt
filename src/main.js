@@ -1,5 +1,6 @@
 import {TreasureHuntGame} from "./treasure_hunt/treasure-hunt.js";
 import {MakeItRainGame} from "./make_it_rain/make-it-rain.js";
+import { MouserGame } from "./mouser/mouser_game.js";
 
 // Options that control the flow of the game
 var treasureHuntOptions = {
@@ -16,6 +17,14 @@ var treasureHuntOptions = {
 };
 
 var rainOptions = {
+    'playInBrowser': true,
+    'drawFPS': 10,
+    'updateFPS': 10,
+    'viewportWidth': 40,
+    'viewportHeight': 14,
+};
+
+var mouserOptions = {
     'playInBrowser': true,
     'drawFPS': 10,
     'updateFPS': 10,
@@ -40,6 +49,11 @@ function run() {
             rainGame.stop();
         }
     }
+
+    var mouserGame = new MouserGame();
+    mouserOptions['viewportWidth'] = Math.floor(window.innerWidth / 8);
+    mouserOptions['viewportHeight'] = Math.floor(window.innerHeight / 32);
+    mouserGame.initialize(mouserOptions);
 
     // this will run in the console
     var thGame = new TreasureHuntGame();
